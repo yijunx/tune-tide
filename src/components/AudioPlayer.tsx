@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Shuffle, Repeat, Repeat1 } from 'lucide-react';
 import { Song } from '@/services/api';
 
 interface AudioPlayerProps {
@@ -11,9 +11,16 @@ interface AudioPlayerProps {
   onPrevious?: () => void;
   onSongLoaded?: () => void;
   forcePlay?: boolean;
+  playlist?: Song[];
+  currentPlaylistIndex?: number;
+  onPlaylistIndexChange?: (index: number) => void;
+  shuffleMode?: boolean;
+  repeatMode?: 'none' | 'one' | 'all';
+  onShuffleToggle?: () => void;
+  onRepeatToggle?: () => void;
 }
 
-export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd, onNext, onPrevious, onSongLoaded, forcePlay }: AudioPlayerProps) {
+export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd, onNext, onPrevious, onSongLoaded, forcePlay, playlist, currentPlaylistIndex, onPlaylistIndexChange, shuffleMode, repeatMode, onShuffleToggle, onRepeatToggle }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -243,11 +250,34 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
             <div className="text-gray-600 dark:text-gray-400 text-sm truncate">
               {currentSong.artist_name} • {currentSong.album_title || 'Unknown Album'}
             </div>
+            {playlist && playlist.length > 0 && (
+              <div className="text-xs text-gray-500 dark:text-gray-500">
+                {currentPlaylistIndex !== undefined && currentPlaylistIndex >= 0 
+                  ? `${currentPlaylistIndex + 1} of ${playlist.length}`
+                  : `${playlist.length} songs in playlist`
+                }
+              </div>
+            )}
           </div>
         </div>
 
         {/* Playback Controls */}
         <div className="flex items-center gap-2">
+          {/* Shuffle Button */}
+          {playlist && playlist.length > 1 && (
+            <button 
+              onClick={onShuffleToggle}
+              className={`p-2 rounded-full transition-colors ${
+                shuffleMode 
+                  ? 'bg-blue-500 text-white' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
+              title={shuffleMode ? 'Shuffle On' : 'Shuffle Off'}
+            >
+              <Shuffle size={16} />
+            </button>
+          )}
+          
           <button 
             onClick={onPrevious}
             className="p-2 hover:bg-gray-100 rounded-full"
@@ -297,6 +327,25 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
           >
             <SkipForward size={20} />
           </button>
+          
+          {/* Repeat Button */}
+          {playlist && playlist.length > 1 && (
+            <button 
+              onClick={onRepeatToggle}
+              className={`p-2 rounded-full transition-colors ${
+                repeatMode !== 'none'
+                  ? 'bg-blue-500 text-white' 
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+              }`}
+              title={
+                repeatMode === 'none' ? 'Repeat Off' :
+                repeatMode === 'one' ? 'Repeat One' :
+                'Repeat All'
+              }
+            >
+              {repeatMode === 'one' ? <Repeat1 size={16} /> : <Repeat size={16} />}
+            </button>
+          )}
         </div>
 
         {/* Progress Bar */}

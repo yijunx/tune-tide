@@ -24,6 +24,11 @@ export default function Home() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPagination, setHistoryPagination] = useState<{ total: number; hasMore: boolean }>({ total: 0, hasMore: true });
   const [forcePlay, setForcePlay] = useState(false);
+  const [playlist, setPlaylist] = useState<Song[]>([]);
+  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState<number>(-1);
+  const [shuffleMode, setShuffleMode] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<'none' | 'one' | 'all'>('none');
+  const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
   
   // Pagination state
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
@@ -125,7 +130,7 @@ export default function Home() {
     }
   }, []);
 
-  const handlePlay = async (song: Song) => {
+  const handlePlay = async (song: Song, songList?: Song[], startIndex?: number) => {
     const songIndex = songs.findIndex(s => s.id === song.id);
     setIsLoadingSong(true);
     
@@ -134,9 +139,17 @@ export default function Home() {
       setForcePlay(false);
     }
     
-    setCurrentSong(song);
-    setCurrentSongIndex(songIndex);
-    setForcePlay(true); // Force the audio player to start playing
+    // If a song list is provided, start playlist mode
+    if (songList && startIndex !== undefined) {
+      startPlaylist(songList, startIndex);
+    } else {
+      // Single song playback - clear playlist
+      setPlaylist([]);
+      setCurrentPlaylistIndex(-1);
+      setCurrentSong(song);
+      setCurrentSongIndex(songIndex);
+      setForcePlay(true);
+    }
     
     // Record play history if user is logged in
     if (user) {
@@ -165,8 +178,12 @@ export default function Home() {
   };
 
   const handleSongEnd = () => {
-    // Auto-play next song
-    handleNext();
+    // Auto-play next song from playlist or regular songs
+    if (playlist.length > 0) {
+      handlePlaylistNext();
+    } else {
+      handleNext();
+    }
   };
 
   const handleSongLoaded = () => {
@@ -339,6 +356,115 @@ export default function Home() {
     }
   };
 
+  // Playlist playback functions
+  const startPlaylist = (songList: Song[], startIndex: number = 0) => {
+    setPlaylist(songList);
+    setCurrentPlaylistIndex(startIndex);
+    setCurrentSong(songList[startIndex]);
+    setCurrentSongIndex(songs.findIndex(s => s.id === songList[startIndex].id));
+    setForcePlay(true);
+    
+    // Reset shuffle if needed
+    if (shuffleMode) {
+      generateShuffledPlaylist(songList, startIndex);
+    }
+  };
+
+  const generateShuffledPlaylist = (songList: Song[], excludeIndex: number) => {
+    const indices = songList.map((_, index) => index).filter(index => index !== excludeIndex);
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    setShuffledPlaylist([excludeIndex, ...indices]);
+  };
+
+  const getNextSongIndex = () => {
+    if (!playlist.length) return -1;
+    
+    if (repeatMode === 'one') {
+      return currentPlaylistIndex;
+    }
+    
+    if (shuffleMode) {
+      const currentShuffleIndex = shuffledPlaylist.indexOf(currentPlaylistIndex);
+      if (currentShuffleIndex < shuffledPlaylist.length - 1) {
+        return shuffledPlaylist[currentShuffleIndex + 1];
+      } else if (repeatMode === 'all') {
+        generateShuffledPlaylist(playlist, -1);
+        return shuffledPlaylist[0];
+      }
+      return -1;
+    } else {
+      if (currentPlaylistIndex < playlist.length - 1) {
+        return currentPlaylistIndex + 1;
+      } else if (repeatMode === 'all') {
+        return 0;
+      }
+      return -1;
+    }
+  };
+
+  const getPreviousSongIndex = () => {
+    if (!playlist.length) return -1;
+    
+    if (repeatMode === 'one') {
+      return currentPlaylistIndex;
+    }
+    
+    if (shuffleMode) {
+      const currentShuffleIndex = shuffledPlaylist.indexOf(currentPlaylistIndex);
+      if (currentShuffleIndex > 0) {
+        return shuffledPlaylist[currentShuffleIndex - 1];
+      } else if (repeatMode === 'all') {
+        generateShuffledPlaylist(playlist, -1);
+        return shuffledPlaylist[shuffledPlaylist.length - 1];
+      }
+      return -1;
+    } else {
+      if (currentPlaylistIndex > 0) {
+        return currentPlaylistIndex - 1;
+      } else if (repeatMode === 'all') {
+        return playlist.length - 1;
+      }
+      return -1;
+    }
+  };
+
+  const handlePlaylistNext = () => {
+    const nextIndex = getNextSongIndex();
+    if (nextIndex >= 0) {
+      setCurrentPlaylistIndex(nextIndex);
+      setCurrentSong(playlist[nextIndex]);
+      setCurrentSongIndex(songs.findIndex(s => s.id === playlist[nextIndex].id));
+      setForcePlay(true);
+    }
+  };
+
+  const handlePlaylistPrevious = () => {
+    const prevIndex = getPreviousSongIndex();
+    if (prevIndex >= 0) {
+      setCurrentPlaylistIndex(prevIndex);
+      setCurrentSong(playlist[prevIndex]);
+      setCurrentSongIndex(songs.findIndex(s => s.id === playlist[prevIndex].id));
+      setForcePlay(true);
+    }
+  };
+
+  const toggleShuffle = () => {
+    setShuffleMode(!shuffleMode);
+    if (!shuffleMode && playlist.length > 0) {
+      generateShuffledPlaylist(playlist, currentPlaylistIndex);
+    }
+  };
+
+  const toggleRepeat = () => {
+    setRepeatMode(
+      repeatMode === 'none' ? 'all' :
+      repeatMode === 'all' ? 'one' : 'none'
+    );
+  };
+
   const handleLogin = () => {
     authService.login();
   };
@@ -474,18 +600,30 @@ export default function Home() {
         {/* Songs Tab Content */}
         {activeTab === 'songs' && (
           <div className="mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Songs</h2>
-              {pagination && (
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  ({pagination.totalItems} found)
-                </span>
-              )}
-              {searchLoading && (
-                <div className="flex items-center gap-1">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Searching...</span>
-                </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Songs</h2>
+                {pagination && (
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    ({pagination.totalItems} found)
+                  </span>
+                )}
+                {searchLoading && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Searching...</span>
+                  </div>
+                )}
+              </div>
+              {songs.length > 0 && (
+                <button
+                  onClick={() => handlePlay(songs[0], songs, 0)}
+                  className="flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
+                  title="Play all songs"
+                >
+                  <Play size={14} />
+                  Play All
+                </button>
               )}
             </div>
             <ul className="grid gap-4">
@@ -614,13 +752,25 @@ export default function Home() {
                         ({pl.songs?.length || 0} songs)
                       </span>
                     </div>
-                    <button
-                      onClick={() => handleDeletePlaylist(pl.id)}
-                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors text-red-600 dark:text-red-400"
-                      title="Delete playlist"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {pl.songs && pl.songs.length > 0 && (
+                        <button
+                          onClick={() => handlePlay(pl.songs![0], pl.songs!, 0)}
+                          className="flex items-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
+                          title="Play all songs in playlist"
+                        >
+                          <Play size={12} />
+                          Play All
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeletePlaylist(pl.id)}
+                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors text-red-600 dark:text-red-400"
+                        title="Delete playlist"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                   {expandedPlaylists.has(pl.id) && (
                     <div className="p-3 border-t border-gray-200 dark:border-gray-700">
@@ -635,7 +785,7 @@ export default function Home() {
                                 </div>
                               </div>
                               <button
-                                onClick={() => handlePlay(song)}
+                                onClick={() => handlePlay(song, pl.songs || [], pl.songs?.findIndex(s => s.id === song.id) || 0)}
                                 className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors text-blue-600 dark:text-blue-400 ml-2"
                                 title="Play song"
                               >
@@ -664,6 +814,26 @@ export default function Home() {
                 <span className="text-sm text-gray-600 dark:text-gray-400">
                   {historyPagination.total} songs played
                 </span>
+                {playHistory.length > 0 && (
+                  <button
+                    onClick={() => handlePlay(playHistory[0], playHistory.map(h => ({
+                      id: h.song_id,
+                      title: h.title,
+                      artist_id: h.artist_id,
+                      artist_name: h.artist_name,
+                      album_title: h.album_title,
+                      artwork_url: h.artwork_url,
+                      audio_url: h.audio_url,
+                      duration: h.duration,
+                      genre: h.genre
+                    })), 0)}
+                    className="flex items-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
+                    title="Play all songs in history"
+                  >
+                    <Play size={12} />
+                    Play All
+                  </button>
+                )}
                 <button
                   onClick={clearPlayHistory}
                   className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
@@ -719,7 +889,17 @@ export default function Home() {
                         audio_url: historyItem.audio_url,
                         duration: historyItem.duration,
                         genre: historyItem.genre
-                      })}
+                      }, playHistory.map(h => ({
+                        id: h.song_id,
+                        title: h.title,
+                        artist_id: h.artist_id,
+                        artist_name: h.artist_name,
+                        album_title: h.album_title,
+                        artwork_url: h.artwork_url,
+                        audio_url: h.audio_url,
+                        duration: h.duration,
+                        genre: h.genre
+                      })), playHistory.findIndex(h => h.song_id === historyItem.song_id))}
                       className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-full transition-colors text-blue-600 dark:text-blue-400"
                       title="Play song"
                     >
@@ -754,10 +934,16 @@ export default function Home() {
         currentSong={currentSong}
         defaultArtworkUrl={defaultArtworkUrl}
         onSongEnd={handleSongEnd}
-        onNext={handleNext}
-        onPrevious={handlePrevious}
+        onNext={playlist.length > 0 ? handlePlaylistNext : handleNext}
+        onPrevious={playlist.length > 0 ? handlePlaylistPrevious : handlePrevious}
         onSongLoaded={handleSongLoaded}
         forcePlay={forcePlay}
+        playlist={playlist}
+        currentPlaylistIndex={currentPlaylistIndex}
+        shuffleMode={shuffleMode}
+        repeatMode={repeatMode}
+        onShuffleToggle={toggleShuffle}
+        onRepeatToggle={toggleRepeat}
       />
       
       <style jsx>{`
