@@ -50,15 +50,15 @@ export interface PaginatedResponse<T> {
 
 // Generic API call function
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  // Get token from localStorage (if running in browser)
   let token: string | null = null;
   if (typeof window !== 'undefined') {
-    token = localStorage.getItem('jwt_token');
+    token = localStorage.getItem('auth_token');
   }
 
+  // Always start with our headers, then spread any additional headers from options (so Authorization is not overwritten)
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options?.headers,
+    ...(options?.headers as Record<string, string>),
   };
 
   if (token) {
@@ -66,8 +66,8 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers,
     ...options,
+    headers, // Our headers always take precedence
   });
 
   if (!response.ok) {

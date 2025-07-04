@@ -29,12 +29,21 @@ export default function Home() {
 
   // Load initial data
   useEffect(() => {
+    // Always sync user state from localStorage on mount
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
+
+  useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         // Check if user is logged in and token exists
-        const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
-        const currentUser = authService.getCurrentUser();
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const userStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+        const currentUser = userStr ? JSON.parse(userStr) : null;
 
         if (!token || !currentUser) {
           setUser(null);
