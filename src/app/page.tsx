@@ -319,8 +319,8 @@ export default function Home() {
 
   const handleTabChange = (tab: 'songs' | 'playlists' | 'history') => {
     setActiveTab(tab);
-    if (tab === 'history' && user && playHistory.length === 0) {
-      loadPlayHistory();
+    if (tab === 'history' && user) {
+      loadPlayHistory(); // Always refresh when switching to history tab
     }
   };
 
