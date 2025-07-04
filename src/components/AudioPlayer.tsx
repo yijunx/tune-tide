@@ -167,7 +167,12 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
             }}
           />
           <div className="min-w-0 flex-1">
-            <div className="font-medium truncate text-gray-900 dark:text-white">{currentSong.title}</div>
+            <div className="font-medium truncate text-gray-900 dark:text-white flex items-center gap-2">
+              {currentSong.title}
+              {currentSong.genre && (
+                <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">{currentSong.genre}</span>
+              )}
+            </div>
             <div className="text-gray-600 dark:text-gray-400 text-sm truncate">
               {currentSong.artist_name} • {currentSong.album_title || 'Unknown Album'}
             </div>

@@ -10,6 +10,7 @@ export interface Song {
   artwork_url?: string;
   duration?: number;
   audio_url: string;
+  genre?: string;
 }
 
 export interface Artist {
@@ -49,11 +50,23 @@ export interface PaginatedResponse<T> {
 
 // Generic API call function
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  // Get token from localStorage (if running in browser)
+  let token: string | null = null;
+  if (typeof window !== 'undefined') {
+    token = localStorage.getItem('jwt_token');
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options?.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    headers,
     ...options,
   });
 

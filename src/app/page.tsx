@@ -32,6 +32,28 @@ export default function Home() {
     const loadData = async () => {
       try {
         setLoading(true);
+        // Check if user is logged in and token exists
+        const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;
+        const currentUser = authService.getCurrentUser();
+
+        if (!token || !currentUser) {
+          setUser(null);
+          setPlaylists([]); // Clear playlists if not logged in
+          // Still load songs and artwork for public view
+          const [songsResponse, defaultArtwork] = await Promise.all([
+            songsApi.getAll(1, 20),
+            uploadApi.getDefaultArtworkUrl()
+          ]);
+          setSongs(songsResponse.songs);
+          setPagination(songsResponse.pagination);
+          setHasMore(songsResponse.pagination.hasNextPage);
+          setDefaultArtworkUrl(defaultArtwork.defaultArtUrl);
+          setArtworkLoaded(true);
+          setLoading(false);
+          return;
+        }
+
+        // Only fetch playlists if logged in
         const [songsResponse, playlistsData, defaultArtwork] = await Promise.all([
           songsApi.getAll(1, 20),
           playlistsApi.getAll(),
@@ -43,9 +65,6 @@ export default function Home() {
         setPlaylists(playlistsData);
         setDefaultArtworkUrl(defaultArtwork.defaultArtUrl);
         setArtworkLoaded(true);
-        
-        // Check authentication
-        const currentUser = authService.getCurrentUser();
         setUser(currentUser);
       } catch (err) {
         setError('Failed to load data. Make sure the backend is running on port 3001.');
@@ -321,7 +340,12 @@ export default function Home() {
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold truncate text-gray-900 dark:text-white">{song.title}</div>
                   <div className="text-gray-600 dark:text-gray-400 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
-                  <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
+                    {song.genre && (
+                      <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">{song.genre}</span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2 items-end">
                   {currentSong?.id === song.id ? (
@@ -399,7 +423,9 @@ export default function Home() {
                 <ul className="ml-4 text-sm">
                   {pl.songs && pl.songs.length > 0 ? (
                     pl.songs.map((song) => (
-                      <li key={song.id} className="text-gray-900 dark:text-white">{song.title} <span className="text-gray-500 dark:text-gray-400">by {song.artist_name}</span></li>
+                      <li key={song.id} className="text-gray-900 dark:text-white flex items-center gap-2">{song.title} <span className="text-gray-500 dark:text-gray-400">by {song.artist_name}</span>{song.genre && (
+                        <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">{song.genre}</span>
+                      )}</li>
                     ))
                   ) : (
                     <li className="text-gray-400 dark:text-gray-500">No songs yet</li>

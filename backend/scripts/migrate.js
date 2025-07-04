@@ -6,8 +6,8 @@ async function migrateDatabase() {
     host: process.env.DB_HOST || 'tune-tide-postgres',
     port: process.env.DB_PORT || 5432,
     database: process.env.DB_NAME || 'local-db',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
+    user: 'postgres',
+    password: 'postgres',
     options: process.env.DB_OPTIONS || '-c search_path=myschema',
   });
 
@@ -53,6 +53,23 @@ async function migrateDatabase() {
         console.error('Error creating index:', error.message);
       }
     }
+
+    // 1. Add user_id to playlists
+    await pool.query(`
+      ALTER TABLE playlists
+      ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)
+    `);
+
+    // 2. Add genre to songs
+    await pool.query(`
+      ALTER TABLE songs
+      ADD COLUMN IF NOT EXISTS genre VARCHAR(64) DEFAULT 'alternative'
+    `);
+
+    // 3. Set all current songs genre to 'alternative'
+    await pool.query(`
+      UPDATE songs SET genre = 'alternative' WHERE genre IS NULL
+    `);
 
     console.log('Database migrations completed successfully!');
     await pool.end();
