@@ -25,14 +25,8 @@ export default function AuthCallbackPage() {
 
       try {
         await authService.handleAuthCallback(token);
-        
-        // Redirect to admin page if user is admin, otherwise to home
-        const user = authService.getCurrentUser();
-        if (user?.is_admin) {
-          router.push('/admin');
-        } else {
-          router.push('/');
-        }
+        // Always redirect to home page after login
+        router.push('/');
       } catch (error) {
         console.error('Auth callback error:', error);
         setError('Failed to complete authentication. Please try again.');

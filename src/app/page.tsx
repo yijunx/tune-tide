@@ -340,12 +340,7 @@ export default function Home() {
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold truncate text-gray-900 dark:text-white">{song.title}</div>
                   <div className="text-gray-600 dark:text-gray-400 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
-                    {song.genre && (
-                      <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">{song.genre}</span>
-                    )}
-                  </div>
+                  <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
                 </div>
                 <div className="flex flex-col gap-2 items-end">
                   {currentSong?.id === song.id ? (
@@ -405,36 +400,39 @@ export default function Home() {
             </div>
           )}
         </div>
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Playlists</h2>
-          <div className="flex gap-2 mb-2">
-            <input
-              className="flex-1 p-2 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
-              placeholder="New playlist name"
-              value={newPlaylistName}
-              onChange={(e) => setNewPlaylistName(e.target.value)}
-            />
-            <button onClick={handleCreatePlaylist} className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Create</button>
+        {/* Playlists Section - only show if user is logged in */}
+        {user && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Playlists</h2>
+            <div className="flex gap-2 mb-2">
+              <input
+                className="flex-1 p-2 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
+                placeholder="New playlist name"
+                value={newPlaylistName}
+                onChange={(e) => setNewPlaylistName(e.target.value)}
+              />
+              <button onClick={handleCreatePlaylist} className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Create</button>
+            </div>
+            <ul>
+              {playlists.map((pl) => (
+                <li key={pl.id} className="mb-2">
+                  <div className="font-semibold text-gray-900 dark:text-white">{pl.name}</div>
+                  <ul className="ml-4 text-sm">
+                    {pl.songs && pl.songs.length > 0 ? (
+                      pl.songs.map((song) => (
+                        <li key={song.id} className="text-gray-900 dark:text-white flex items-center gap-2">{song.title} <span className="text-gray-500 dark:text-gray-400">by {song.artist_name}</span>{song.genre && (
+                          <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">{song.genre}</span>
+                        )}</li>
+                      ))
+                    ) : (
+                      <li className="text-gray-400 dark:text-gray-500">No songs yet</li>
+                    )}
+                  </ul>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul>
-            {playlists.map((pl) => (
-              <li key={pl.id} className="mb-2">
-                <div className="font-semibold text-gray-900 dark:text-white">{pl.name}</div>
-                <ul className="ml-4 text-sm">
-                  {pl.songs && pl.songs.length > 0 ? (
-                    pl.songs.map((song) => (
-                      <li key={song.id} className="text-gray-900 dark:text-white flex items-center gap-2">{song.title} <span className="text-gray-500 dark:text-gray-400">by {song.artist_name}</span>{song.genre && (
-                        <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">{song.genre}</span>
-                      )}</li>
-                    ))
-                  ) : (
-                    <li className="text-gray-400 dark:text-gray-500">No songs yet</li>
-                  )}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </div>
+        )}
       </main>
       
       <AudioPlayer
