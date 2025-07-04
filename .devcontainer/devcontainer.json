@@ -1,0 +1,29 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.177.0/containers/python-3
+{
+    "name": "tune-tide",
+    "dockerComposeFile": "docker-compose.yaml",
+    "service": "tune-tide",
+    "workspaceFolder": "/opt/node-user/code",
+  
+    // Set *default* container specific settings.json values on container create.
+    "customizations": {
+      "vscode": {
+        "settings": {
+          "terminal.integrated.defaultProfile.linux": "zsh",
+          "terminal.integrated.profiles.linux": {
+            "zsh": {
+              "path": "/bin/zsh"
+            }
+          },
+          "editor.formatOnSave": true,
+          "editor.formatOnPaste": true
+        },
+        "extensions": [
+          "esbenp.prettier-vscode",
+          "dsznajder.es7-react-js-snippets"
+        ]
+      }
+    },
+    "remoteUser": "node-user"
+  }
