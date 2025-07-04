@@ -5,14 +5,73 @@ const router = express.Router();
 // Get all songs with artist and album info
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT s.*, ar.name as artist_name, al.title as album_title, al.artwork_url
-      FROM songs s 
-      JOIN artists ar ON s.artist_id = ar.id 
-      LEFT JOIN albums al ON s.album_id = al.id 
-      ORDER BY s.title
-    `);
-    res.json(result.rows);
+    const { page = 1, limit = 20, search } = req.query;
+    const offset = (page - 1) * limit;
+    
+    let query, params;
+    
+    if (search) {
+      // Search query with pagination
+      query = `
+        SELECT s.*, ar.name as artist_name, al.title as album_title, al.artwork_url
+        FROM songs s 
+        JOIN artists ar ON s.artist_id = ar.id 
+        LEFT JOIN albums al ON s.album_id = al.id 
+        WHERE to_tsvector('english', s.title) @@ plainto_tsquery('english', $1)
+           OR to_tsvector('english', ar.name) @@ plainto_tsquery('english', $1)
+           OR to_tsvector('english', al.title) @@ plainto_tsquery('english', $1)
+        ORDER BY s.title
+        LIMIT $2 OFFSET $3
+      `;
+      params = [search, limit, offset];
+    } else {
+      // Regular query with pagination, sorted by created_at desc
+      query = `
+        SELECT s.*, ar.name as artist_name, al.title as album_title, al.artwork_url
+        FROM songs s 
+        JOIN artists ar ON s.artist_id = ar.id 
+        LEFT JOIN albums al ON s.album_id = al.id 
+        ORDER BY s.created_at DESC
+        LIMIT $1 OFFSET $2
+      `;
+      params = [limit, offset];
+    }
+    
+    const result = await pool.query(query, params);
+    
+    // Get total count for pagination info
+    let countQuery, countParams;
+    if (search) {
+      countQuery = `
+        SELECT COUNT(*) as total
+        FROM songs s 
+        JOIN artists ar ON s.artist_id = ar.id 
+        LEFT JOIN albums al ON s.album_id = al.id 
+        WHERE to_tsvector('english', s.title) @@ plainto_tsquery('english', $1)
+           OR to_tsvector('english', ar.name) @@ plainto_tsquery('english', $1)
+           OR to_tsvector('english', al.title) @@ plainto_tsquery('english', $1)
+      `;
+      countParams = [search];
+    } else {
+      countQuery = 'SELECT COUNT(*) as total FROM songs';
+      countParams = [];
+    }
+    
+    const countResult = await pool.query(countQuery, countParams);
+    const total = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / limit);
+    
+    res.json({
+      songs: result.rows,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalItems: total,
+        itemsPerPage: parseInt(limit),
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1
+      }
+    });
   } catch (error) {
     console.error('Error fetching songs:', error);
     res.status(500).json({ error: 'Internal server error' });

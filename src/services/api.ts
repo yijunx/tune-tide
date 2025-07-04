@@ -33,6 +33,20 @@ export interface Playlist {
   songs?: Song[];
 }
 
+export interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  songs: T[];
+  pagination: PaginationInfo;
+}
+
 // Generic API call function
 async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -52,7 +66,16 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
 // Songs API
 export const songsApi = {
-  getAll: () => apiCall<Song[]>('/songs'),
+  getAll: (page = 1, limit = 20, search?: string) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    if (search) {
+      params.append('search', search);
+    }
+    return apiCall<PaginatedResponse<Song>>(`/songs?${params.toString()}`);
+  },
   getById: (id: number) => apiCall<Song>(`/songs/${id}`),
   search: (query: string) => apiCall<Song[]>(`/songs/search/${encodeURIComponent(query)}`),
   getByArtist: (artistId: number) => apiCall<Song[]>(`/songs/artist/${artistId}`),
@@ -159,4 +182,4 @@ export const searchApi = {
     artists: Artist[];
     albums: Album[];
   }>(`/search/${encodeURIComponent(query)}`),
-}; 
+};

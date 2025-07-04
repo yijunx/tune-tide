@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Plus, LogIn, User, LogOut } from "lucide-react";
-import { songsApi, playlistsApi, searchApi, uploadApi, Song, Playlist } from "@/services/api";
+import { songsApi, playlistsApi, searchApi, uploadApi, Song, Playlist, PaginationInfo } from "@/services/api";
 import { authService, User as AuthUser } from "@/services/auth";
 import AudioPlayer from "@/components/AudioPlayer";
 
@@ -18,18 +18,28 @@ export default function Home() {
   const [artworkLoaded, setArtworkLoaded] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSong, setIsLoadingSong] = useState(false);
+  
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadingRef = useRef<HTMLDivElement>(null);
 
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [songsData, playlistsData, defaultArtwork] = await Promise.all([
-          songsApi.getAll(),
+        const [songsResponse, playlistsData, defaultArtwork] = await Promise.all([
+          songsApi.getAll(1, 20),
           playlistsApi.getAll(),
           uploadApi.getDefaultArtworkUrl()
         ]);
-        setSongs(songsData);
+        setSongs(songsResponse.songs);
+        setPagination(songsResponse.pagination);
+        setHasMore(songsResponse.pagination.hasNextPage);
         setPlaylists(playlistsData);
         setDefaultArtworkUrl(defaultArtwork.defaultArtUrl);
         setArtworkLoaded(true);
@@ -48,26 +58,38 @@ export default function Home() {
     loadData();
   }, []);
 
-  // Search functionality
-  const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      // If search is empty, load all songs
-      try {
-        const songsData = await songsApi.getAll();
-        setSongs(songsData);
-      } catch (err) {
-        console.error('Error loading songs:', err);
-      }
-      return;
-    }
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      handleSearch(search);
+    }, 300); // 300ms delay
 
+    return () => clearTimeout(timeoutId);
+  }, [search]);
+
+  // Search functionality
+  const handleSearch = useCallback(async (query: string) => {
     try {
-      const searchResults = await searchApi.global(query);
-      setSongs(searchResults.songs);
+      setSearchLoading(true);
+      if (!query.trim()) {
+        // If search is empty, load first page of all songs
+        const songsResponse = await songsApi.getAll(1, 20);
+        setSongs(songsResponse.songs);
+        setPagination(songsResponse.pagination);
+        setHasMore(songsResponse.pagination.hasNextPage);
+      } else {
+        // Search with pagination
+        const songsResponse = await songsApi.getAll(1, 20, query);
+        setSongs(songsResponse.songs);
+        setPagination(songsResponse.pagination);
+        setHasMore(songsResponse.pagination.hasNextPage);
+      }
     } catch (err) {
       console.error('Error searching:', err);
+    } finally {
+      setSearchLoading(false);
     }
-  };
+  }, []);
 
   const handlePlay = (song: Song) => {
     const songIndex = songs.findIndex(s => s.id === song.id);
@@ -100,6 +122,47 @@ export default function Home() {
   const handleSongLoaded = () => {
     setIsLoadingSong(false);
   };
+
+  // Load more songs for infinite scrolling
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !pagination) return;
+    
+    try {
+      setLoadingMore(true);
+      const nextPage = pagination.currentPage + 1;
+      const songsResponse = await songsApi.getAll(nextPage, 20, search);
+      
+      setSongs(prev => [...prev, ...songsResponse.songs]);
+      setPagination(songsResponse.pagination);
+      setHasMore(songsResponse.pagination.hasNextPage);
+    } catch (err) {
+      console.error('Error loading more songs:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, pagination, search]);
+
+  // Intersection observer for infinite scrolling
+  useEffect(() => {
+    if (loadingRef.current) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !loadingMore) {
+            loadMore();
+          }
+        },
+        { threshold: 0.1 }
+      );
+      
+      observerRef.current.observe(loadingRef.current);
+    }
+    
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [loadMore, hasMore, loadingMore]);
 
   const handleAddToPlaylist = async (song: Song, playlistId: number) => {
     try {
@@ -215,13 +278,23 @@ export default function Home() {
           className="w-full p-2 border rounded mb-4"
           placeholder="Search for songs, artists, or albums..."
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            handleSearch(e.target.value);
-          }}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-2">Songs</h2>
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-xl font-semibold">Songs</h2>
+            {pagination && (
+              <span className="text-sm text-gray-600">
+                ({pagination.totalItems} found)
+              </span>
+            )}
+            {searchLoading && (
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-gray-600">Searching...</span>
+              </div>
+            )}
+          </div>
           <ul className="grid gap-4">
             {songs.map((song, index) => (
               <li key={song.id} className="flex items-center bg-white rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-shadow border">
@@ -284,6 +357,20 @@ export default function Home() {
           </ul>
           {songs.length === 0 && (
             <div className="text-center text-gray-500 py-8">No songs found</div>
+          )}
+          
+          {/* Loading indicator for infinite scroll */}
+          {hasMore && (
+            <div ref={loadingRef} className="text-center py-4">
+              {loadingMore ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-gray-600">Loading more songs...</span>
+                </div>
+              ) : (
+                <div className="h-4" /> // Invisible element for intersection observer
+              )}
+            </div>
           )}
         </div>
         <div className="mb-8">
