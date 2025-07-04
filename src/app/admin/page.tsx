@@ -43,7 +43,6 @@ export default function AdminPage() {
   
   // File states
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [artworkFile, setArtworkFile] = useState<File | null>(null);
   const [albumArtworkFile, setAlbumArtworkFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -158,9 +157,6 @@ export default function AdminPage() {
       if (audioFile) {
         formData.append('audio', audioFile);
       }
-      if (artworkFile) {
-        formData.append('artwork', artworkFile);
-      }
 
       const response = await fetch('http://localhost:3001/api/admin/songs', {
         method: 'POST',
@@ -173,7 +169,6 @@ export default function AdminPage() {
       if (response.ok) {
         setSongForm({ title: '', artist_id: '', album_id: '', duration: '', genre: '' });
         setAudioFile(null);
-        setArtworkFile(null);
         await loadData();
         alert('Song created successfully!');
       } else {
@@ -188,26 +183,26 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center text-gray-600 dark:text-gray-400">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow">
+      <div className="bg-white dark:bg-gray-800 shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <h1 className="text-3xl font-bold text-gray-900">TuneTide Admin</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">TuneTide Admin</h1>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 Welcome, {user?.name}
               </span>
               <button
                 onClick={handleLogout}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
               >
                 Logout
               </button>
@@ -220,60 +215,60 @@ export default function AdminPage() {
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">{stats.songs}</h3>
-              <p className="text-gray-600">Songs</p>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{stats.songs}</h3>
+              <p className="text-gray-600 dark:text-gray-400">Songs</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">{stats.artists}</h3>
-              <p className="text-gray-600">Artists</p>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{stats.artists}</h3>
+              <p className="text-gray-600 dark:text-gray-400">Artists</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">{stats.albums}</h3>
-              <p className="text-gray-600">Albums</p>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{stats.albums}</h3>
+              <p className="text-gray-600 dark:text-gray-400">Albums</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">{stats.users}</h3>
-              <p className="text-gray-600">Users</p>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{stats.users}</h3>
+              <p className="text-gray-600 dark:text-gray-400">Users</p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold text-gray-900">{stats.playlists}</h3>
-              <p className="text-gray-600">Playlists</p>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{stats.playlists}</h3>
+              <p className="text-gray-600 dark:text-gray-400">Playlists</p>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Create Artist */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Add Artist</h2>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Add Artist</h2>
             <form onSubmit={handleCreateArtist}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Name *
                 </label>
                 <input
                   type="text"
                   value={artistForm.name}
                   onChange={(e) => setArtistForm({ ...artistForm, name: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
                   required
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Bio
                 </label>
                 <textarea
                   value={artistForm.bio}
                   onChange={(e) => setArtistForm({ ...artistForm, bio: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
                   rows={3}
                 />
               </div>
               <button
                 type="submit"
-                className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+                className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-colors"
               >
                 Create Artist
               </button>
@@ -281,29 +276,29 @@ export default function AdminPage() {
           </div>
 
           {/* Create Album */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Add Album</h2>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Add Album</h2>
             <form onSubmit={handleCreateAlbum}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Title *
                 </label>
                 <input
                   type="text"
                   value={albumForm.title}
                   onChange={(e) => setAlbumForm({ ...albumForm, title: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
                   required
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Artist *
                 </label>
                 <select
                   value={albumForm.artist_id}
                   onChange={(e) => setAlbumForm({ ...albumForm, artist_id: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                   required
                 >
                   <option value="">Select Artist</option>
@@ -315,32 +310,32 @@ export default function AdminPage() {
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Release Year
                 </label>
                 <input
                   type="number"
                   value={albumForm.release_year}
                   onChange={(e) => setAlbumForm({ ...albumForm, release_year: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                   min="1900"
                   max="2030"
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Artwork
                 </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setAlbumArtworkFile(e.target.files?.[0] || null)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-600 dark:file:text-gray-300"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+                className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition-colors"
               >
                 Create Album
               </button>
@@ -348,29 +343,29 @@ export default function AdminPage() {
           </div>
 
           {/* Create Song */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Add Song</h2>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Add Song</h2>
             <form onSubmit={handleCreateSong}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Title *
                 </label>
                 <input
                   type="text"
                   value={songForm.title}
                   onChange={(e) => setSongForm({ ...songForm, title: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
                   required
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Artist *
                 </label>
                 <select
                   value={songForm.artist_id}
                   onChange={(e) => setSongForm({ ...songForm, artist_id: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                   required
                 >
                   <option value="">Select Artist</option>
@@ -382,13 +377,13 @@ export default function AdminPage() {
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Album
                 </label>
                 <select
                   value={songForm.album_id}
                   onChange={(e) => setSongForm({ ...songForm, album_id: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                 >
                   <option value="">Select Album</option>
                   {albums.map(album => (
@@ -399,53 +394,42 @@ export default function AdminPage() {
                 </select>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Duration (seconds)
                 </label>
                 <input
                   type="number"
                   value={songForm.duration}
                   onChange={(e) => setSongForm({ ...songForm, duration: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
                   min="1"
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Genre
                 </label>
                 <input
                   type="text"
                   value={songForm.genre}
                   onChange={(e) => setSongForm({ ...songForm, genre: e.target.value })}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Audio File
                 </label>
                 <input
                   type="file"
                   accept="audio/*"
                   onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Artwork
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setArtworkFile(e.target.files?.[0] || null)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-600 dark:file:text-gray-300"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full bg-purple-500 text-white py-2 rounded hover:bg-purple-600"
+                className="w-full bg-purple-500 text-white py-2 rounded hover:bg-purple-600 transition-colors"
               >
                 Create Song
               </button>

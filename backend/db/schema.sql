@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS songs (
     album_id INTEGER REFERENCES albums(id) ON DELETE SET NULL,
     duration INTEGER, -- in seconds
     audio_url TEXT,
+    genre VARCHAR(100),
     created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

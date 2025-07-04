@@ -102,40 +102,41 @@ router.post('/albums', upload.single('artwork'), async (req, res) => {
 });
 
 // Create new song
-router.post('/songs', upload.fields([
-  { name: 'audio', maxCount: 1 },
-  { name: 'artwork', maxCount: 1 }
-]), async (req, res) => {
+router.post('/songs', upload.single('audio'), async (req, res) => {
   try {
-    const { title, artist_id, album_id, duration } = req.body;
+    const { title, artist_id, album_id, duration, genre } = req.body;
     
     if (!title || !artist_id) {
       return res.status(400).json({ error: 'Title and artist are required' });
     }
     
     let audio_url = null;
-    let artwork_url = null;
     
     // Upload audio file if provided
-    if (req.files.audio) {
-      const audioFile = req.files.audio[0];
+    if (req.file) {
       const timestamp = Date.now();
-      const fileName = `${timestamp}_${audioFile.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      audio_url = await uploadAudioFile(audioFile.buffer, fileName, audioFile.mimetype);
+      const fileName = `${timestamp}_${req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      audio_url = await uploadAudioFile(req.file.buffer, fileName, req.file.mimetype);
     }
     
-    // Upload artwork if provided
-    if (req.files.artwork) {
-      const artworkFile = req.files.artwork[0];
-      const timestamp = Date.now();
-      const fileName = `${timestamp}_${artworkFile.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      artwork_url = await uploadFile(artworkFile.buffer, fileName, artworkFile.mimetype);
+    // Try to insert with genre first, fallback to without genre if column doesn't exist
+    let result;
+    try {
+      result = await pool.query(
+        'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, genre, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [title, artist_id, album_id, duration, audio_url, genre, req.user.id]
+      );
+    } catch (error) {
+      if (error.code === '42703') { // Column doesn't exist
+        console.log('Genre column not found, inserting without genre');
+        result = await pool.query(
+          'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [title, artist_id, album_id, duration, audio_url, req.user.id]
+        );
+      } else {
+        throw error;
+      }
     }
-    
-    const result = await pool.query(
-      'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, artist_id, album_id, duration, audio_url, req.user.id]
-    );
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
