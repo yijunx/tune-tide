@@ -327,12 +327,12 @@ export default function Home() {
                   {currentSong?.id === song.id ? (
                     <div className="flex items-center gap-2">
                       <div className="flex items-end gap-0.5 h-4">
-                        <div className="w-0.5 bg-blue-500 rounded-full animate-sound-bar-1"></div>
-                        <div className="w-0.5 bg-blue-500 rounded-full animate-sound-bar-2"></div>
-                        <div className="w-0.5 bg-blue-500 rounded-full animate-sound-bar-3"></div>
-                        <div className="w-0.5 bg-blue-500 rounded-full animate-sound-bar-4"></div>
+                        <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-1"></div>
+                        <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-2"></div>
+                        <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-3"></div>
+                        <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-4"></div>
                       </div>
-                      <span className="text-xs text-blue-500 font-medium">Now Playing</span>
+                      <span className="text-xs text-blue-500 dark:text-blue-400 font-medium">Now Playing</span>
                     </div>
                   ) : (
                     <button 

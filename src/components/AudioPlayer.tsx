@@ -142,7 +142,7 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
   if (!currentSong) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 shadow-lg">
       <audio
         ref={audioRef}
         src={currentSong.audio_url}
@@ -167,8 +167,8 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
             }}
           />
           <div className="min-w-0 flex-1">
-            <div className="font-medium truncate">{currentSong.title}</div>
-            <div className="text-gray-600 text-sm truncate">
+            <div className="font-medium truncate text-gray-900 dark:text-white">{currentSong.title}</div>
+            <div className="text-gray-600 dark:text-gray-400 text-sm truncate">
               {currentSong.artist_name} • {currentSong.album_title || 'Unknown Album'}
             </div>
           </div>
@@ -204,10 +204,10 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
             ) : isPlaying ? (
               <div className="w-5 h-5 flex items-center justify-center">
                 <div className="flex items-end gap-0.5 h-4">
-                  <div className="w-0.5 bg-white rounded-full animate-sound-bar-1"></div>
-                  <div className="w-0.5 bg-white rounded-full animate-sound-bar-2"></div>
-                  <div className="w-0.5 bg-white rounded-full animate-sound-bar-3"></div>
-                  <div className="w-0.5 bg-white rounded-full animate-sound-bar-4"></div>
+                  <div className="w-0.5 bg-white dark:bg-blue-200 rounded-full animate-sound-bar-1"></div>
+                  <div className="w-0.5 bg-white dark:bg-blue-200 rounded-full animate-sound-bar-2"></div>
+                  <div className="w-0.5 bg-white dark:bg-blue-200 rounded-full animate-sound-bar-3"></div>
+                  <div className="w-0.5 bg-white dark:bg-blue-200 rounded-full animate-sound-bar-4"></div>
                 </div>
               </div>
             ) : (
