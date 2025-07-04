@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "db:setup": "node scripts/setup-db.js",
     "db:seed": "node scripts/seed-data.js",
-    "upload-default-artwork": "node scripts/upload-default-artwork.js"
+    "upload-default-artwork": "node scripts/upload-default-artwork.js",
+    "upload-default-audio": "node scripts/upload-default-audio.js"
   },
   "dependencies": {
     "express": "^4.18.2",

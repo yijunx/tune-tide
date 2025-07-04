@@ -40,13 +40,16 @@ const seedData = async () => {
       albumIds[`${album.title}-${album.artist}`] = result.rows[0].id;
     }
 
+    // Default audio URL from MinIO
+    const defaultAudioUrl = 'http://localhost:9000/tunetide-assets/audio/default-audio.mp3';
+
     // Insert songs
     const songs = [
-      { title: 'Dreams', artist: 'Fleetwood Mac', album: 'Rumours', duration: 257, audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-      { title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', duration: 200, audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
-      { title: 'Levitating', artist: 'Dua Lipa', album: 'Future Nostalgia', duration: 203, audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
-      { title: 'Shape of You', artist: 'Ed Sheeran', album: '÷ (Divide)', duration: 233, audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-      { title: 'Watermelon Sugar', artist: 'Harry Styles', album: 'Fine Line', duration: 174, audio_url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' }
+      { title: 'Dreams', artist: 'Fleetwood Mac', album: 'Rumours', duration: 257, audio_url: defaultAudioUrl },
+      { title: 'Blinding Lights', artist: 'The Weeknd', album: 'After Hours', duration: 200, audio_url: defaultAudioUrl },
+      { title: 'Levitating', artist: 'Dua Lipa', album: 'Future Nostalgia', duration: 203, audio_url: defaultAudioUrl },
+      { title: 'Shape of You', artist: 'Ed Sheeran', album: '÷ (Divide)', duration: 233, audio_url: defaultAudioUrl },
+      { title: 'Watermelon Sugar', artist: 'Harry Styles', album: 'Fine Line', duration: 174, audio_url: defaultAudioUrl }
     ];
 
     for (const song of songs) {

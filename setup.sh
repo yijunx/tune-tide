@@ -49,6 +49,10 @@ npm run db:seed
 echo "   Setting up MinIO and uploading default artwork..."
 npm run upload-default-artwork
 
+# Upload default audio file
+echo "   Uploading default audio file..."
+npm run upload-default-audio
+
 echo "✅ Backend setup complete!"
 echo ""
 
