@@ -10,9 +10,10 @@ interface AudioPlayerProps {
   onNext?: () => void;
   onPrevious?: () => void;
   onSongLoaded?: () => void;
+  forcePlay?: boolean;
 }
 
-export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd, onNext, onPrevious, onSongLoaded }: AudioPlayerProps) {
+export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd, onNext, onPrevious, onSongLoaded, forcePlay }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -24,35 +25,72 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
   // Reset player when song changes
   useEffect(() => {
     if (currentSong && audioRef.current) {
-      setIsLoading(true);
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-      
-      // Load the new audio
-      audioRef.current.load();
-      
-      // Auto-play the new song
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            setIsLoading(false);
-            onSongLoaded?.();
-          })
-          .catch((error) => {
-            console.error('Error playing audio:', error);
-            setIsLoading(false);
-            setIsPlaying(false);
-          });
+      // Only reset if the song ID has actually changed
+      const currentSongId = audioRef.current.dataset.songId;
+      if (currentSongId !== currentSong.id?.toString()) {
+        setIsLoading(true);
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+        
+        // Load the new audio
+        audioRef.current.load();
+        audioRef.current.dataset.songId = currentSong.id?.toString() || '';
+        
+        // Auto-play the new song
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+              setIsLoading(false);
+              onSongLoaded?.();
+            })
+            .catch((error) => {
+              console.error('Error playing audio:', error);
+              setIsLoading(false);
+              setIsPlaying(false);
+            });
+        }
+      } else if (forcePlay) {
+        // Force play the same song if forcePlay is true
+        setIsLoading(true);
+        
+        // Ensure audio is loaded and ready
+        if (audioRef.current.readyState === 0) {
+          audioRef.current.load();
+        }
+        
+        // Reset current time and pause first to ensure clean state
+        audioRef.current.currentTime = 0;
+        audioRef.current.pause();
+        
+        // Small delay to ensure pause is processed, then play
+        setTimeout(() => {
+          if (audioRef.current) {
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  setIsPlaying(true);
+                  setIsLoading(false);
+                  onSongLoaded?.();
+                })
+                .catch((error) => {
+                  console.error('Error playing audio:', error);
+                  setIsLoading(false);
+                  setIsPlaying(false);
+                });
+            }
+          }
+        }, 100);
       }
     }
-  }, [currentSong, onSongLoaded]);
+  }, [currentSong?.id, onSongLoaded, forcePlay]);
 
   // Handle play/pause
   const togglePlay = async () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !currentSong) return;
 
     try {
       if (isPlaying) {
@@ -60,6 +98,12 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
         setIsPlaying(false);
       } else {
         setIsLoading(true);
+        
+        // Ensure audio is loaded
+        if (audioRef.current.readyState === 0) {
+          audioRef.current.load();
+        }
+        
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           await playPromise;
@@ -73,6 +117,31 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
       setIsPlaying(false);
     }
   };
+
+  // Sync audio element state with our state
+  useEffect(() => {
+    if (audioRef.current) {
+      const audio = audioRef.current;
+      
+      const handlePlay = () => setIsPlaying(true);
+      const handlePause = () => setIsPlaying(false);
+      const handleEnded = () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        onSongEnd?.();
+      };
+      
+      audio.addEventListener('play', handlePlay);
+      audio.addEventListener('pause', handlePause);
+      audio.addEventListener('ended', handleEnded);
+      
+      return () => {
+        audio.removeEventListener('play', handlePlay);
+        audio.removeEventListener('pause', handlePause);
+        audio.removeEventListener('ended', handleEnded);
+      };
+    }
+  }, [onSongEnd]);
 
   // Handle time update
   const handleTimeUpdate = () => {
@@ -125,13 +194,6 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
     }
   };
 
-  // Handle song end
-  const handleEnded = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    onSongEnd?.();
-  };
-
   // Format time helper
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
@@ -146,9 +208,14 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
       <audio
         ref={audioRef}
         src={currentSong.audio_url}
+        data-song-id={currentSong.id?.toString() || ''}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+          onSongEnd?.();
+        }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
       />

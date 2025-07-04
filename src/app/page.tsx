@@ -23,6 +23,7 @@ export default function Home() {
   const [playHistory, setPlayHistory] = useState<PlayHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPagination, setHistoryPagination] = useState<{ total: number; hasMore: boolean }>({ total: 0, hasMore: true });
+  const [forcePlay, setForcePlay] = useState(false);
   
   // Pagination state
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
@@ -127,8 +128,15 @@ export default function Home() {
   const handlePlay = async (song: Song) => {
     const songIndex = songs.findIndex(s => s.id === song.id);
     setIsLoadingSong(true);
+    
+    // If it's a different song, reset forcePlay first
+    if (currentSong?.id !== song.id) {
+      setForcePlay(false);
+    }
+    
     setCurrentSong(song);
     setCurrentSongIndex(songIndex);
+    setForcePlay(true); // Force the audio player to start playing
     
     // Record play history if user is logged in
     if (user) {
@@ -164,6 +172,17 @@ export default function Home() {
   const handleSongLoaded = () => {
     setIsLoadingSong(false);
   };
+
+  // Reset forcePlay flag after it's been used
+  useEffect(() => {
+    if (forcePlay) {
+      // Reset the flag after a short delay to allow the AudioPlayer to process it
+      const timer = setTimeout(() => {
+        setForcePlay(false);
+      }, 200); // Increased delay to ensure AudioPlayer has time to process
+      return () => clearTimeout(timer);
+    }
+  }, [forcePlay]);
 
   // Load more songs for infinite scrolling
   const loadMore = useCallback(async () => {
@@ -737,6 +756,7 @@ export default function Home() {
         onNext={handleNext}
         onPrevious={handlePrevious}
         onSongLoaded={handleSongLoaded}
+        forcePlay={forcePlay}
       />
       
       <style jsx>{`
