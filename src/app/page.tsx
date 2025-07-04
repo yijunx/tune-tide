@@ -211,8 +211,8 @@ export default function Home() {
   if (loading) {
     return (
       <main className="max-w-2xl mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-4">TuneTide</h1>
-        <div className="text-center py-8">Loading...</div>
+        <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">TuneTide</h1>
+        <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading...</div>
       </main>
     );
   }
@@ -220,10 +220,10 @@ export default function Home() {
   if (error) {
     return (
       <main className="max-w-2xl mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-4">TuneTide</h1>
-        <div className="text-red-500 text-center py-8">{error}</div>
-        <div className="text-center text-sm text-gray-600">
-          Make sure to start the backend server: <code className="bg-gray-100 px-2 py-1 rounded">cd backend && npm run dev</code>
+        <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">TuneTide</h1>
+        <div className="text-red-500 dark:text-red-400 text-center py-8">{error}</div>
+        <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+          Make sure to start the backend server: <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-900 dark:text-white">cd backend && npm run dev</code>
         </div>
       </main>
     );
@@ -234,7 +234,7 @@ export default function Home() {
       <main className="max-w-2xl mx-auto p-4 pb-24">
         {/* Header with login */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">TuneTide</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">TuneTide</h1>
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-2">
@@ -245,7 +245,7 @@ export default function Home() {
                     className="w-8 h-8 rounded-full"
                   />
                 )}
-                <span className="text-sm text-gray-600">{user.name}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{user.name}</span>
                 {user.is_admin && (
                   <button
                     onClick={handleAdminAccess}
@@ -256,7 +256,7 @@ export default function Home() {
                 )}
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-1 text-gray-600 hover:text-gray-800"
+                  className="flex items-center gap-1 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   title="Logout"
                 >
                   <LogOut size={16} />
@@ -275,33 +275,33 @@ export default function Home() {
         </div>
 
         <input
-          className="w-full p-2 border rounded mb-4"
+          className="w-full p-2 border rounded mb-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
           placeholder="Search for songs, artists, or albums..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-xl font-semibold">Songs</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Songs</h2>
             {pagination && (
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 ({pagination.totalItems} found)
               </span>
             )}
             {searchLoading && (
               <div className="flex items-center gap-1">
                 <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-gray-600">Searching...</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Searching...</span>
               </div>
             )}
           </div>
           <ul className="grid gap-4">
             {songs.map((song, index) => (
-              <li key={song.id} className="flex items-center bg-white rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-shadow border">
+              <li key={song.id} className="flex items-center bg-white dark:bg-gray-800 rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700">
                 <img 
                   src={getArtworkUrl(song.artwork_url)} 
                   alt={song.album_title + ' cover'} 
-                  className="w-16 h-16 rounded-lg object-cover border"
+                  className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
                   onError={(e) => {
                     if (defaultArtworkUrl) {
                       e.currentTarget.src = defaultArtworkUrl;
@@ -310,14 +310,14 @@ export default function Home() {
                   style={{ display: getArtworkUrl(song.artwork_url) ? 'block' : 'none' }}
                 />
                 {!getArtworkUrl(song.artwork_url) && (
-                  <div className="w-16 h-16 rounded-lg border bg-gray-200 flex items-center justify-center">
-                    <span className="text-gray-400 text-xs">No Image</span>
+                  <div className="w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">No Image</span>
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{song.title}</div>
-                  <div className="text-gray-600 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
-                  <div className="text-gray-400 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
+                  <div className="font-semibold truncate text-gray-900 dark:text-white">{song.title}</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
+                  <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
                 </div>
                 <div className="flex flex-col gap-2 items-end">
                   <button 
@@ -325,25 +325,38 @@ export default function Home() {
                     className={`p-2 rounded-full transition-colors ${
                       currentSong?.id === song.id 
                         ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                        : 'hover:bg-gray-100'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                     }`} 
                     title="Play"
                   >
                     {currentSong?.id === song.id && isLoadingSong ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        <svg className="w-5 h-5 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      </div>
+                    ) : currentSong?.id === song.id ? (
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        <div className="flex items-end gap-0.5 h-4">
+                          <div className="w-0.5 bg-white rounded-full animate-sound-bar-1"></div>
+                          <div className="w-0.5 bg-white rounded-full animate-sound-bar-2"></div>
+                          <div className="w-0.5 bg-white rounded-full animate-sound-bar-3"></div>
+                          <div className="w-0.5 bg-white rounded-full animate-sound-bar-4"></div>
+                        </div>
+                      </div>
                     ) : (
                       <Play size={20} />
                     )}
                   </button>
                   <div className="relative group">
-                    <button className="p-2 hover:bg-gray-100 rounded-full" title="Add to playlist">
+                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300" title="Add to playlist">
                       <Plus size={20} />
                     </button>
-                    <div className="absolute left-0 top-8 bg-white border rounded shadow-md p-2 hidden group-hover:block z-10 min-w-[120px]">
+                    <div className="absolute left-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md p-2 hidden group-hover:block z-10 min-w-[120px]">
                       {playlists.map((pl) => (
                         <button
                           key={pl.id}
-                          className="block w-full text-left px-2 py-1 hover:bg-gray-100"
+                          className="block w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
                           onClick={() => handleAddToPlaylist(song, pl.id)}
                         >
                           {pl.name}
@@ -356,7 +369,7 @@ export default function Home() {
             ))}
           </ul>
           {songs.length === 0 && (
-            <div className="text-center text-gray-500 py-8">No songs found</div>
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8">No songs found</div>
           )}
           
           {/* Loading indicator for infinite scroll */}
@@ -365,7 +378,7 @@ export default function Home() {
               {loadingMore ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-gray-600">Loading more songs...</span>
+                  <span className="text-gray-600 dark:text-gray-400">Loading more songs...</span>
                 </div>
               ) : (
                 <div className="h-4" /> // Invisible element for intersection observer
@@ -374,27 +387,27 @@ export default function Home() {
           )}
         </div>
         <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-2">Playlists</h2>
+          <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Playlists</h2>
           <div className="flex gap-2 mb-2">
             <input
-              className="flex-1 p-2 border rounded"
+              className="flex-1 p-2 border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="New playlist name"
               value={newPlaylistName}
               onChange={(e) => setNewPlaylistName(e.target.value)}
             />
-            <button onClick={handleCreatePlaylist} className="px-3 py-2 bg-blue-500 text-white rounded">Create</button>
+            <button onClick={handleCreatePlaylist} className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Create</button>
           </div>
           <ul>
             {playlists.map((pl) => (
               <li key={pl.id} className="mb-2">
-                <div className="font-semibold">{pl.name}</div>
+                <div className="font-semibold text-gray-900 dark:text-white">{pl.name}</div>
                 <ul className="ml-4 text-sm">
                   {pl.songs && pl.songs.length > 0 ? (
                     pl.songs.map((song) => (
-                      <li key={song.id}>{song.title} <span className="text-gray-500">by {song.artist_name}</span></li>
+                      <li key={song.id} className="text-gray-900 dark:text-white">{song.title} <span className="text-gray-500 dark:text-gray-400">by {song.artist_name}</span></li>
                     ))
                   ) : (
-                    <li className="text-gray-400">No songs yet</li>
+                    <li className="text-gray-400 dark:text-gray-500">No songs yet</li>
                   )}
                 </ul>
               </li>
@@ -411,6 +424,37 @@ export default function Home() {
         onPrevious={handlePrevious}
         onSongLoaded={handleSongLoaded}
       />
+      
+      <style jsx>{`
+        @keyframes soundBar1 {
+          0%, 100% { height: 4px; }
+          50% { height: 16px; }
+        }
+        @keyframes soundBar2 {
+          0%, 100% { height: 8px; }
+          50% { height: 12px; }
+        }
+        @keyframes soundBar3 {
+          0%, 100% { height: 12px; }
+          50% { height: 8px; }
+        }
+        @keyframes soundBar4 {
+          0%, 100% { height: 16px; }
+          50% { height: 4px; }
+        }
+        .animate-sound-bar-1 {
+          animation: soundBar1 1s ease-in-out infinite;
+        }
+        .animate-sound-bar-2 {
+          animation: soundBar2 1s ease-in-out infinite 0.1s;
+        }
+        .animate-sound-bar-3 {
+          animation: soundBar3 1s ease-in-out infinite 0.2s;
+        }
+        .animate-sound-bar-4 {
+          animation: soundBar4 1s ease-in-out infinite 0.3s;
+        }
+      `}</style>
     </>
   );
 }

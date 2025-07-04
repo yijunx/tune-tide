@@ -196,9 +196,20 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
             title={isLoading ? 'Loading...' : (isPlaying ? 'Pause' : 'Play')}
           >
             {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 flex items-center justify-center">
+                <svg className="w-5 h-5 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
             ) : isPlaying ? (
-              <Pause size={20} />
+              <div className="w-5 h-5 flex items-center justify-center">
+                <div className="flex items-end gap-0.5 h-4">
+                  <div className="w-0.5 bg-white rounded-full animate-sound-bar-1"></div>
+                  <div className="w-0.5 bg-white rounded-full animate-sound-bar-2"></div>
+                  <div className="w-0.5 bg-white rounded-full animate-sound-bar-3"></div>
+                  <div className="w-0.5 bg-white rounded-full animate-sound-bar-4"></div>
+                </div>
+              </div>
             ) : (
               <Play size={20} />
             )}
@@ -271,6 +282,35 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
           background: #3b82f6;
           cursor: pointer;
           border: none;
+        }
+        
+        @keyframes soundBar1 {
+          0%, 100% { height: 4px; }
+          50% { height: 16px; }
+        }
+        @keyframes soundBar2 {
+          0%, 100% { height: 8px; }
+          50% { height: 12px; }
+        }
+        @keyframes soundBar3 {
+          0%, 100% { height: 12px; }
+          50% { height: 8px; }
+        }
+        @keyframes soundBar4 {
+          0%, 100% { height: 16px; }
+          50% { height: 4px; }
+        }
+        .animate-sound-bar-1 {
+          animation: soundBar1 1s ease-in-out infinite;
+        }
+        .animate-sound-bar-2 {
+          animation: soundBar2 1s ease-in-out infinite 0.1s;
+        }
+        .animate-sound-bar-3 {
+          animation: soundBar3 1s ease-in-out infinite 0.2s;
+        }
+        .animate-sound-bar-4 {
+          animation: soundBar4 1s ease-in-out infinite 0.3s;
         }
       `}</style>
     </div>
