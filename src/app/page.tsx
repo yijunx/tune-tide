@@ -166,6 +166,7 @@ export default function Home() {
       const nextSong = songs[currentSongIndex + 1];
       setCurrentSong(nextSong);
       setCurrentSongIndex(currentSongIndex + 1);
+      setForcePlay(true);
     }
   };
 
