@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, Plus, LogIn, User, LogOut, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
-import { songsApi, playlistsApi, searchApi, uploadApi, Song, Playlist, PaginationInfo } from "@/services/api";
+import { Play, Plus, LogIn, User, LogOut, ChevronDown, ChevronRight, Trash2, History } from "lucide-react";
+import { songsApi, playlistsApi, searchApi, uploadApi, playHistoryApi, Song, Playlist, PlayHistory, PaginationInfo } from "@/services/api";
 import { authService, User as AuthUser } from "@/services/auth";
 import AudioPlayer from "@/components/AudioPlayer";
 
@@ -19,6 +19,10 @@ export default function Home() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSong, setIsLoadingSong] = useState(false);
   const [expandedPlaylists, setExpandedPlaylists] = useState<Set<number>>(new Set());
+  const [activeTab, setActiveTab] = useState<'songs' | 'playlists' | 'history'>('songs');
+  const [playHistory, setPlayHistory] = useState<PlayHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPagination, setHistoryPagination] = useState<{ total: number; hasMore: boolean }>({ total: 0, hasMore: true });
   
   // Pagination state
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
@@ -120,11 +124,20 @@ export default function Home() {
     }
   }, []);
 
-  const handlePlay = (song: Song) => {
+  const handlePlay = async (song: Song) => {
     const songIndex = songs.findIndex(s => s.id === song.id);
     setIsLoadingSong(true);
     setCurrentSong(song);
     setCurrentSongIndex(songIndex);
+    
+    // Record play history if user is logged in
+    if (user) {
+      try {
+        await playHistoryApi.recordPlay(song.id);
+      } catch (err) {
+        console.error('Error recording play history:', err);
+      }
+    }
   };
 
   const handleNext = () => {
@@ -258,6 +271,55 @@ export default function Home() {
     });
   };
 
+  const loadPlayHistory = async (offset = 0) => {
+    if (!user) return;
+    
+    try {
+      setHistoryLoading(true);
+      const [historyData, countData] = await Promise.all([
+        playHistoryApi.getAll(20, offset),
+        playHistoryApi.getCount()
+      ]);
+      
+      if (offset === 0) {
+        setPlayHistory(historyData);
+      } else {
+        setPlayHistory(prev => [...prev, ...historyData]);
+      }
+      
+      setHistoryPagination({
+        total: countData.total,
+        hasMore: offset + historyData.length < countData.total
+      });
+    } catch (err) {
+      console.error('Error loading play history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: 'songs' | 'playlists' | 'history') => {
+    setActiveTab(tab);
+    if (tab === 'history' && user && playHistory.length === 0) {
+      loadPlayHistory();
+    }
+  };
+
+  const clearPlayHistory = async () => {
+    if (!confirm('Are you sure you want to clear your play history? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      await playHistoryApi.clear();
+      setPlayHistory([]);
+      setHistoryPagination({ total: 0, hasMore: false });
+    } catch (err) {
+      console.error('Error clearing play history:', err);
+      alert('Failed to clear play history.');
+    }
+  };
+
   const handleLogin = () => {
     authService.login();
   };
@@ -350,113 +412,157 @@ export default function Home() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Songs</h2>
-            {pagination && (
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                ({pagination.totalItems} found)
-              </span>
+        
+        {/* Tab Navigation */}
+        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+          <button
+            onClick={() => handleTabChange('songs')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'songs'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            Songs
+          </button>
+          {user && (
+            <>
+              <button
+                onClick={() => handleTabChange('playlists')}
+                className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'playlists'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Playlists
+              </button>
+              <button
+                onClick={() => handleTabChange('history')}
+                className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-1 ${
+                  activeTab === 'history'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <History size={14} />
+                History
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Songs Tab Content */}
+        {activeTab === 'songs' && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Songs</h2>
+              {pagination && (
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  ({pagination.totalItems} found)
+                </span>
+              )}
+              {searchLoading && (
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Searching...</span>
+                </div>
+              )}
+            </div>
+            <ul className="grid gap-4">
+              {songs.map((song, index) => (
+                <li key={song.id} className={`flex items-center rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-all border ${
+                  currentSong?.id === song.id 
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700' 
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                }`}>
+                  <img 
+                    src={getArtworkUrl(song.artwork_url)} 
+                    alt={song.album_title + ' cover'} 
+                    className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
+                    onError={(e) => {
+                      if (defaultArtworkUrl) {
+                        e.currentTarget.src = defaultArtworkUrl;
+                      }
+                    }}
+                    style={{ display: getArtworkUrl(song.artwork_url) ? 'block' : 'none' }}
+                  />
+                  {!getArtworkUrl(song.artwork_url) && (
+                    <div className="w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <span className="text-gray-400 dark:text-gray-500 text-xs">No Image</span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold truncate text-gray-900 dark:text-white">{song.title}</div>
+                    <div className="text-gray-600 dark:text-gray-400 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
+                    <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
+                  </div>
+                  <div className="flex flex-col gap-2 items-end">
+                    {currentSong?.id === song.id ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-end gap-0.5 h-4">
+                          <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-1"></div>
+                          <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-2"></div>
+                          <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-3"></div>
+                          <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-4"></div>
+                        </div>
+                        <span className="text-xs text-blue-500 dark:text-blue-400 font-medium">Now Playing</span>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => handlePlay(song)} 
+                        className="p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                        title="Play"
+                      >
+                        <Play size={20} />
+                      </button>
+                    )}
+                    <div className="relative group">
+                      <button 
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"
+                        title="Add to playlist"
+                      >
+                        <Plus size={20} />
+                      </button>
+                      <div className="absolute left-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md p-2 hidden group-hover:block z-10 min-w-[120px]">
+                        {playlists.map((pl) => (
+                          <button
+                            key={pl.id}
+                            className="block w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => handleAddToPlaylist(song, pl.id)}
+                            disabled={isSongInPlaylist(song, pl)}
+                          >
+                            {pl.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {songs.length === 0 && (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">No songs found</div>
             )}
-            {searchLoading && (
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">Searching...</span>
+            
+            {/* Loading indicator for infinite scroll */}
+            {hasMore && (
+              <div ref={loadingRef} className="text-center py-4">
+                {loadingMore ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-gray-600 dark:text-gray-400">Loading more songs...</span>
+                  </div>
+                ) : (
+                  <div className="h-4" /> // Invisible element for intersection observer
+                )}
               </div>
             )}
           </div>
-          <ul className="grid gap-4">
-            {songs.map((song, index) => (
-              <li key={song.id} className={`flex items-center rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-all border ${
-                currentSong?.id === song.id 
-                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700' 
-                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-              }`}>
-                <img 
-                  src={getArtworkUrl(song.artwork_url)} 
-                  alt={song.album_title + ' cover'} 
-                  className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
-                  onError={(e) => {
-                    if (defaultArtworkUrl) {
-                      e.currentTarget.src = defaultArtworkUrl;
-                    }
-                  }}
-                  style={{ display: getArtworkUrl(song.artwork_url) ? 'block' : 'none' }}
-                />
-                {!getArtworkUrl(song.artwork_url) && (
-                  <div className="w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">No Image</span>
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate text-gray-900 dark:text-white">{song.title}</div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
-                  <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  {currentSong?.id === song.id ? (
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-end gap-0.5 h-4">
-                        <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-1"></div>
-                        <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-2"></div>
-                        <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-3"></div>
-                        <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-4"></div>
-                      </div>
-                      <span className="text-xs text-blue-500 dark:text-blue-400 font-medium">Now Playing</span>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={() => handlePlay(song)} 
-                      className="p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-                      title="Play"
-                    >
-                      <Play size={20} />
-                    </button>
-                  )}
-                  <div className="relative group">
-                    <button 
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"
-                      title="Add to playlist"
-                    >
-                      <Plus size={20} />
-                    </button>
-                    <div className="absolute left-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md p-2 hidden group-hover:block z-10 min-w-[120px]">
-                      {playlists.map((pl) => (
-                        <button
-                          key={pl.id}
-                          className="block w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                          onClick={() => handleAddToPlaylist(song, pl.id)}
-                          disabled={isSongInPlaylist(song, pl)}
-                        >
-                          {pl.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-          {songs.length === 0 && (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">No songs found</div>
-          )}
-          
-          {/* Loading indicator for infinite scroll */}
-          {hasMore && (
-            <div ref={loadingRef} className="text-center py-4">
-              {loadingMore ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-gray-600 dark:text-gray-400">Loading more songs...</span>
-                </div>
-              ) : (
-                <div className="h-4" /> // Invisible element for intersection observer
-              )}
-            </div>
-          )}
-        </div>
-        {/* Playlists Section - only show if user is logged in */}
-        {user && (
+        )}
+        
+        {/* Playlists Tab Content */}
+        {activeTab === 'playlists' && user && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">Playlists</h2>
             <div className="flex gap-2 mb-2">
@@ -527,6 +633,99 @@ export default function Home() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        
+        {/* History Tab Content */}
+        {activeTab === 'history' && user && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Play History</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {historyPagination.total} songs played
+                </span>
+                <button
+                  onClick={clearPlayHistory}
+                  className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                  title="Clear all play history"
+                >
+                  Clear History
+                </button>
+              </div>
+            </div>
+            
+            {historyLoading && playHistory.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <span className="text-gray-600 dark:text-gray-400">Loading play history...</span>
+              </div>
+            ) : playHistory.length > 0 ? (
+              <ul className="space-y-3">
+                {playHistory.map((historyItem) => (
+                  <li key={historyItem.id} className="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+                    <img 
+                      src={getArtworkUrl(historyItem.artwork_url)} 
+                      alt={historyItem.album_title + ' cover'} 
+                      className="w-12 h-12 rounded object-cover border border-gray-200 dark:border-gray-600"
+                      onError={(e) => {
+                        if (defaultArtworkUrl) {
+                          e.currentTarget.src = defaultArtworkUrl;
+                        }
+                      }}
+                      style={{ display: getArtworkUrl(historyItem.artwork_url) ? 'block' : 'none' }}
+                    />
+                    {!getArtworkUrl(historyItem.artwork_url) && (
+                      <div className="w-12 h-12 rounded border border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <span className="text-gray-400 dark:text-gray-500 text-xs">No Image</span>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 dark:text-white truncate">{historyItem.title}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                        {historyItem.artist_name} • {historyItem.album_title || 'Unknown Album'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">
+                        Played {new Date(historyItem.played_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handlePlay({
+                        id: historyItem.song_id,
+                        title: historyItem.title,
+                        artist_name: historyItem.artist_name,
+                        album_title: historyItem.album_title,
+                        artwork_url: historyItem.artwork_url,
+                        audio_url: historyItem.audio_url,
+                        duration: historyItem.duration,
+                        genre: historyItem.genre
+                      })}
+                      className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-full transition-colors text-blue-600 dark:text-blue-400"
+                      title="Play song"
+                    >
+                      <Play size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                No play history yet. Start playing songs to see them here!
+              </div>
+            )}
+            
+            {/* Load more history */}
+            {historyPagination.hasMore && (
+              <div className="text-center py-4">
+                <button
+                  onClick={() => loadPlayHistory(playHistory.length)}
+                  disabled={historyLoading}
+                  className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {historyLoading ? 'Loading...' : 'Load More'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>

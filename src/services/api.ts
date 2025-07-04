@@ -34,6 +34,21 @@ export interface Playlist {
   songs?: Song[];
 }
 
+export interface PlayHistory {
+  id: number;
+  played_at: string;
+  song_id: number;
+  title: string;
+  duration?: number;
+  audio_url: string;
+  genre?: string;
+  artist_id: number;
+  artist_name: string;
+  album_id?: number;
+  album_title?: string;
+  artwork_url?: string;
+}
+
 export interface PaginationInfo {
   currentPage: number;
   totalPages: number;
@@ -163,6 +178,19 @@ export const playlistsApi = {
     body: JSON.stringify({ song_id: songId }),
   }),
   removeSong: (playlistId: number, songId: number) => apiCall<{ message: string }>(`/playlists/${playlistId}/songs/${songId}`, {
+    method: 'DELETE',
+  }),
+};
+
+// Play History API
+export const playHistoryApi = {
+  recordPlay: (songId: number) => apiCall<any>('/play-history', {
+    method: 'POST',
+    body: JSON.stringify({ song_id: songId }),
+  }),
+  getAll: (limit = 50, offset = 0) => apiCall<PlayHistory[]>(`/play-history?limit=${limit}&offset=${offset}`),
+  getCount: () => apiCall<{ total: number }>('/play-history/count'),
+  clear: () => apiCall<{ message: string }>('/play-history', {
     method: 'DELETE',
   }),
 };
