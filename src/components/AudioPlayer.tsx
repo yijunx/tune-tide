@@ -9,34 +9,68 @@ interface AudioPlayerProps {
   onSongEnd?: () => void;
   onNext?: () => void;
   onPrevious?: () => void;
+  onSongLoaded?: () => void;
 }
 
-export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd, onNext, onPrevious }: AudioPlayerProps) {
+export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd, onNext, onPrevious, onSongLoaded }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Reset player when song changes
   useEffect(() => {
     if (currentSong && audioRef.current) {
-      audioRef.current.load();
+      setIsLoading(true);
       setIsPlaying(false);
       setCurrentTime(0);
+      setDuration(0);
+      
+      // Load the new audio
+      audioRef.current.load();
+      
+      // Auto-play the new song
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setIsLoading(false);
+            onSongLoaded?.();
+          })
+          .catch((error) => {
+            console.error('Error playing audio:', error);
+            setIsLoading(false);
+            setIsPlaying(false);
+          });
+      }
     }
-  }, [currentSong]);
+  }, [currentSong, onSongLoaded]);
 
   // Handle play/pause
-  const togglePlay = () => {
-    if (audioRef.current) {
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
+
+    try {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
-        audioRef.current.play();
+        setIsLoading(true);
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          setIsPlaying(true);
+        }
+        setIsLoading(false);
       }
-      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error('Error toggling play:', error);
+      setIsLoading(false);
+      setIsPlaying(false);
     }
   };
 
@@ -51,6 +85,7 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
+      onSongLoaded?.();
     }
   };
 
@@ -145,22 +180,35 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
             onClick={onPrevious}
             className="p-2 hover:bg-gray-100 rounded-full"
             title="Previous"
+            disabled={isLoading}
           >
             <SkipBack size={20} />
           </button>
           
           <button 
             onClick={togglePlay}
-            className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600"
-            title={isPlaying ? 'Pause' : 'Play'}
+            disabled={isLoading}
+            className={`p-3 rounded-full transition-colors ${
+              isLoading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+            title={isLoading ? 'Loading...' : (isPlaying ? 'Pause' : 'Play')}
           >
-            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : isPlaying ? (
+              <Pause size={20} />
+            ) : (
+              <Play size={20} />
+            )}
           </button>
           
           <button 
             onClick={onNext}
             className="p-2 hover:bg-gray-100 rounded-full"
             title="Next"
+            disabled={isLoading}
           >
             <SkipForward size={20} />
           </button>

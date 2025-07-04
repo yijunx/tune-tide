@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Play, Plus } from "lucide-react";
+import { Play, Plus, LogIn, User, LogOut } from "lucide-react";
 import { songsApi, playlistsApi, searchApi, uploadApi, Song, Playlist } from "@/services/api";
+import { authService, User as AuthUser } from "@/services/auth";
 import AudioPlayer from "@/components/AudioPlayer";
 
 export default function Home() {
@@ -15,6 +16,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [defaultArtworkUrl, setDefaultArtworkUrl] = useState<string>("");
   const [artworkLoaded, setArtworkLoaded] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoadingSong, setIsLoadingSong] = useState(false);
 
   // Load initial data
   useEffect(() => {
@@ -30,6 +33,10 @@ export default function Home() {
         setPlaylists(playlistsData);
         setDefaultArtworkUrl(defaultArtwork.defaultArtUrl);
         setArtworkLoaded(true);
+        
+        // Check authentication
+        const currentUser = authService.getCurrentUser();
+        setUser(currentUser);
       } catch (err) {
         setError('Failed to load data. Make sure the backend is running on port 3001.');
         console.error('Error loading data:', err);
@@ -64,6 +71,7 @@ export default function Home() {
 
   const handlePlay = (song: Song) => {
     const songIndex = songs.findIndex(s => s.id === song.id);
+    setIsLoadingSong(true);
     setCurrentSong(song);
     setCurrentSongIndex(songIndex);
   };
@@ -89,6 +97,10 @@ export default function Home() {
     handleNext();
   };
 
+  const handleSongLoaded = () => {
+    setIsLoadingSong(false);
+  };
+
   const handleAddToPlaylist = async (song: Song, playlistId: number) => {
     try {
       await playlistsApi.addSong(playlistId, song.id);
@@ -111,6 +123,19 @@ export default function Home() {
     } catch (err) {
       console.error('Error creating playlist:', err);
     }
+  };
+
+  const handleLogin = () => {
+    authService.login();
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setUser(null);
+  };
+
+  const handleAdminAccess = () => {
+    window.location.href = '/admin';
   };
 
   // Helper function to get artwork URL with fallback
@@ -144,7 +169,48 @@ export default function Home() {
   return (
     <>
       <main className="max-w-2xl mx-auto p-4 pb-24">
-        <h1 className="text-3xl font-bold mb-4">TuneTide</h1>
+        {/* Header with login */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">TuneTide</h1>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <div className="flex items-center gap-2">
+                {user.picture_url && (
+                  <img 
+                    src={user.picture_url} 
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full"
+                  />
+                )}
+                <span className="text-sm text-gray-600">{user.name}</span>
+                {user.is_admin && (
+                  <button
+                    onClick={handleAdminAccess}
+                    className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
+                  >
+                    Admin
+                  </button>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1 text-gray-600 hover:text-gray-800"
+                  title="Logout"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                <LogIn size={16} />
+                Login with Google
+              </button>
+            )}
+          </div>
+        </div>
+
         <input
           className="w-full p-2 border rounded mb-4"
           placeholder="Search for songs, artists, or albums..."
@@ -190,7 +256,11 @@ export default function Home() {
                     }`} 
                     title="Play"
                   >
-                    <Play size={20} />
+                    {currentSong?.id === song.id && isLoadingSong ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Play size={20} />
+                    )}
                   </button>
                   <div className="relative group">
                     <button className="p-2 hover:bg-gray-100 rounded-full" title="Add to playlist">
@@ -252,6 +322,7 @@ export default function Home() {
         onSongEnd={handleSongEnd}
         onNext={handleNext}
         onPrevious={handlePrevious}
+        onSongLoaded={handleSongLoaded}
       />
     </>
   );

@@ -34,6 +34,12 @@ MINIO_PORT=9000
 MINIO_ACCESS_KEY=minio_access_key
 MINIO_SECRET_KEY=minio_secret_key
 MINIO_BUCKET=tunetide-assets
+FRONTEND_URL=http://localhost:3000
+JWT_SECRET=your_jwt_secret_key_here_change_in_production
+SESSION_SECRET=your_session_secret_key_here_change_in_production
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+ADMIN_EMAILS=admin@example.com
 EOF
 fi
 
