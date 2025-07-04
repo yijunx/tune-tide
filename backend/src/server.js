@@ -1,13 +1,33 @@
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
+const passport = require('./config/passport');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // Set to true in production with HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Import routes
 const artistsRouter = require('./routes/artists');
@@ -16,6 +36,8 @@ const songsRouter = require('./routes/songs');
 const playlistsRouter = require('./routes/playlists');
 const uploadRouter = require('./routes/upload');
 const audioRouter = require('./routes/audio');
+const authRouter = require('./routes/auth');
+const adminRouter = require('./routes/admin');
 
 // Routes
 app.use('/api/artists', artistsRouter);
@@ -24,6 +46,8 @@ app.use('/api/songs', songsRouter);
 app.use('/api/playlists', playlistsRouter);
 app.use('/api/upload', uploadRouter);
 app.use('/api/audio', audioRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
