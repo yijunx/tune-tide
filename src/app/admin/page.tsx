@@ -37,7 +37,8 @@ export default function AdminPage() {
     title: '', 
     artist_id: '', 
     album_id: '', 
-    duration: '' 
+    duration: '',
+    genre: ''
   });
   
   // File states
@@ -152,6 +153,7 @@ export default function AdminPage() {
       formData.append('artist_id', songForm.artist_id);
       formData.append('album_id', songForm.album_id);
       formData.append('duration', songForm.duration);
+      formData.append('genre', songForm.genre);
       
       if (audioFile) {
         formData.append('audio', audioFile);
@@ -169,7 +171,7 @@ export default function AdminPage() {
       });
 
       if (response.ok) {
-        setSongForm({ title: '', artist_id: '', album_id: '', duration: '' });
+        setSongForm({ title: '', artist_id: '', album_id: '', duration: '', genre: '' });
         setAudioFile(null);
         setArtworkFile(null);
         await loadData();
@@ -406,6 +408,17 @@ export default function AdminPage() {
                   onChange={(e) => setSongForm({ ...songForm, duration: e.target.value })}
                   className="w-full p-2 border rounded"
                   min="1"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Genre
+                </label>
+                <input
+                  type="text"
+                  value={songForm.genre}
+                  onChange={(e) => setSongForm({ ...songForm, genre: e.target.value })}
+                  className="w-full p-2 border rounded"
                 />
               </div>
               <div className="mb-4">

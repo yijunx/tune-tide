@@ -811,38 +811,13 @@ export default function Home() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Play History</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {historyPagination.total} songs played
-                </span>
-                {playHistory.length > 0 && (
-                  <button
-                    onClick={() => handlePlay(playHistory[0], playHistory.map(h => ({
-                      id: h.song_id,
-                      title: h.title,
-                      artist_id: h.artist_id,
-                      artist_name: h.artist_name,
-                      album_title: h.album_title,
-                      artwork_url: h.artwork_url,
-                      audio_url: h.audio_url,
-                      duration: h.duration,
-                      genre: h.genre
-                    })), 0)}
-                    className="flex items-center gap-1 px-2 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
-                    title="Play all songs in history"
-                  >
-                    <Play size={12} />
-                    Play All
-                  </button>
-                )}
-                <button
-                  onClick={clearPlayHistory}
-                  className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                  title="Clear all play history"
-                >
-                  Clear History
-                </button>
-              </div>
+              <button
+                onClick={clearPlayHistory}
+                className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                title="Clear all play history"
+              >
+                Clear History
+              </button>
             </div>
             
             {historyLoading && playHistory.length === 0 ? (
