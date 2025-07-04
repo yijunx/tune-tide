@@ -131,6 +131,27 @@ export const playlistsApi = {
   }),
 };
 
+// Upload API
+export const uploadApi = {
+  uploadAlbumArtwork: async (file: File) => {
+    const formData = new FormData();
+    formData.append('artwork', file);
+    
+    const response = await fetch(`${API_BASE_URL}/upload/album-artwork`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+  
+  getDefaultArtworkUrl: () => apiCall<{ defaultArtUrl: string }>('/upload/default-album-art'),
+};
+
 // Global search API
 export const searchApi = {
   global: (query: string) => apiCall<{

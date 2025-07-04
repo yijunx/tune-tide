@@ -1,217 +1,181 @@
 # 🎵 TuneTide - Music Streaming App
 
-A Spotify-inspired music streaming application built with Next.js, Express, and PostgreSQL. Features include song search, playlist creation, and instant playback.
+A modern music streaming application inspired by Spotify, built with Next.js, Express.js, PostgreSQL, and MinIO. Features include song search, playlist creation, and instant playback.
 
 ## ✨ Features
 
-- **Search Songs**: Search by song title, artist, or album
-- **Instant Playback**: Click any song to start playing immediately
-- **Playlist Management**: Create and manage custom playlists
-- **Apple Music-style UI**: Modern, responsive design with album artwork
-- **Real-time Search**: Fast search across songs, artists, and albums
-- **Database Integration**: Full CRUD operations with PostgreSQL
+- 🎵 **Music Search**: Search for songs, artists, and albums
+- 🎧 **Instant Playback**: Play songs directly in the browser
+- 📝 **Playlist Management**: Create and manage playlists
+- 🖼️ **Album Artwork**: Upload and display album artwork using MinIO
+- 🎨 **Modern UI**: Beautiful, responsive interface with Apple Music vibes
+- 🔍 **Real-time Search**: Fast search across all music content
 
 ## 🏗️ Architecture
 
-### Frontend (Next.js 15)
+### Frontend (Next.js 14)
 
 - **Framework**: Next.js with App Router
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 - **TypeScript**: Full type safety
-- **API Integration**: Custom service layer
 
 ### Backend (Express.js)
 
-- **Framework**: Express.js
-- **Database**: PostgreSQL with full-text search
+- **Server**: Express.js REST API
+- **Database**: PostgreSQL with connection pooling
 - **API**: RESTful endpoints with proper error handling
 - **CORS**: Enabled for frontend communication
+- **MinIO**: Object storage for album artwork
+- **Multer**: File uploads
 
 ### Database (PostgreSQL)
 
 - **Tables**: artists, albums, songs, playlists, playlist_songs
-- **Features**: Full-text search, foreign key relationships, triggers
-- **Indexes**: Optimized for search performance
+- **Schema**: myschema
+- **Features**: Full-text search, relationships, constraints
+
+### Storage (MinIO)
+
+- **Purpose**: Album artwork storage
+- **Bucket**: tunetide-assets
+- **Structure**: album-artwork/ directory
+- **Access**: Public read, authenticated upload
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- PostgreSQL database (can be local or Docker)
+- Docker and Docker Compose
+- The `utilities` Docker network (create with `docker network create utilities`)
 
-### Option 1: Automated Setup
+### 1. Clone and Setup
 
 ```bash
-# Run the setup script
+git clone <repository-url>
+cd tune-tide
+```
+
+### 2. Run Setup Script
+
+```bash
+chmod +x setup.sh
 ./setup.sh
 ```
 
-### Option 2: Manual Setup
+This script will:
 
-1. **Clone and install dependencies:**
+- Install all dependencies
+- Set up the PostgreSQL database
+- Seed the database with sample data
+- Initialize MinIO bucket and upload default artwork
+- Start both frontend and backend servers
 
-   ```bash
-   npm install
-   cd backend && npm install
-   ```
+### 3. Manual Setup (Alternative)
 
-2. **Setup database:**
+If you prefer to set up manually:
 
-   ```bash
-   cd backend
-   # Create .env file with your database credentials
-   npm run db:setup
-   npm run db:seed
-   ```
+#### Backend Setup
 
-3. **Start the servers:**
+```bash
+cd backend
+npm install
+npm run db:setup
+npm run db:seed
+npm run upload-default-artwork
+npm run dev
+```
 
-   ```bash
-   # Terminal 1 - Backend
-   cd backend && npm run dev
+#### Frontend Setup
 
-   # Terminal 2 - Frontend
-   npm run dev
-   ```
+```bash
+npm install
+npm run dev
+```
 
-4. **Open your browser:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:3001/api
-   - Health check: http://localhost:3001/api/health
+## 🌐 Services
 
-## 📚 API Endpoints
+### Frontend
 
-### Songs
+- **URL**: http://localhost:3000
+- **Features**: Music search, playback, playlist management
+
+### Backend API
+
+- **URL**: http://localhost:3001
+- **Health Check**: http://localhost:3001/api/health
+- **Features**: RESTful API for music data and file uploads
+
+### Database
+
+- **Service**: tune-tide-postgres
+- **Port**: 5432
+- **Database**: local-db
+- **Schema**: myschema
+
+### MinIO Object Storage
+
+- **Service**: tune-tide-minio
+- **API Port**: 9000
+- **Console Port**: 9001
+- **Access Key**: minio_access_key
+- **Secret Key**: minio_secret_key
+- **Bucket**: tunetide-assets
+- **Console URL**: http://localhost:9001
+
+## 📡 API Endpoints
+
+### Music Data
 
 - `GET /api/songs` - Get all songs
 - `GET /api/songs/:id` - Get song by ID
 - `GET /api/songs/search/:query` - Search songs
-- `POST /api/songs` - Create new song
-- `PUT /api/songs/:id` - Update song
-- `DELETE /api/songs/:id` - Delete song
-
-### Artists
-
 - `GET /api/artists` - Get all artists
-- `GET /api/artists/:id` - Get artist by ID
-- `GET /api/artists/search/:query` - Search artists
-- `POST /api/artists` - Create new artist
-- `PUT /api/artists/:id` - Update artist
-- `DELETE /api/artists/:id` - Delete artist
-
-### Albums
-
 - `GET /api/albums` - Get all albums
-- `GET /api/albums/:id` - Get album by ID
-- `GET /api/albums/search/:query` - Search albums
-- `POST /api/albums` - Create new album
-- `PUT /api/albums/:id` - Update album
-- `DELETE /api/albums/:id` - Delete album
-
-### Playlists
-
 - `GET /api/playlists` - Get all playlists
-- `GET /api/playlists/:id` - Get playlist with songs
-- `POST /api/playlists` - Create new playlist
-- `PUT /api/playlists/:id` - Update playlist
-- `DELETE /api/playlists/:id` - Delete playlist
-- `POST /api/playlists/:id/songs` - Add song to playlist
-- `DELETE /api/playlists/:id/songs/:songId` - Remove song from playlist
+- `GET /api/search/:query` - Global search
 
-### Global Search
+### File Upload
 
-- `GET /api/search/:query` - Search across songs, artists, and albums
+- `POST /api/upload/album-artwork` - Upload album artwork
+- `GET /api/upload/default-album-art` - Get default artwork URL
 
-## 🗄️ Database Schema
+## 📁 File Storage
 
-```sql
--- Artists table
-CREATE TABLE artists (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    bio TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+Album artwork is stored in MinIO with the following structure:
 
--- Albums table
-CREATE TABLE albums (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    artist_id INTEGER REFERENCES artists(id) ON DELETE CASCADE,
-    release_year INTEGER,
-    artwork_url TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Songs table
-CREATE TABLE songs (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    artist_id INTEGER REFERENCES artists(id) ON DELETE CASCADE,
-    album_id INTEGER REFERENCES albums(id) ON DELETE SET NULL,
-    duration INTEGER,
-    audio_url TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Playlists table
-CREATE TABLE playlists (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Playlist songs junction table
-CREATE TABLE playlist_songs (
-    id SERIAL PRIMARY KEY,
-    playlist_id INTEGER REFERENCES playlists(id) ON DELETE CASCADE,
-    song_id INTEGER REFERENCES songs(id) ON DELETE CASCADE,
-    position INTEGER NOT NULL,
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+```
+tunetide-assets/
+└── album-artwork/
+    ├── default-album-art.jpg
+    ├── 1234567890_album1.jpg
+    └── 1234567891_album2.jpg
 ```
 
-## 🛠️ Development
+### Uploading Album Artwork
 
-### Adding New Songs
+1. Use the upload component in the frontend
+2. Select an image file (JPG, PNG, etc.)
+3. Preview the image
+4. Click upload to store in MinIO
+5. The returned URL can be used in album records
 
-```bash
-# Via API
-curl -X POST http://localhost:3001/api/songs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "New Song",
-    "artist_id": 1,
-    "album_id": 1,
-    "duration": 180,
-    "audio_url": "https://example.com/song.mp3"
-  }'
-```
+## 🔧 Development
 
-### Database Scripts
+### Database Schema
 
-```bash
-# Setup database schema
-cd backend && npm run db:setup
+The application uses PostgreSQL with the following main tables:
 
-# Seed with sample data
-cd backend && npm run db:seed
-
-# Reset database (if needed)
-cd backend && npm run db:reset
-```
-
-## 🔧 Configuration
+- `artists` - Music artists
+- `albums` - Music albums with artwork URLs
+- `songs` - Individual songs
+- `playlists` - User playlists
+- `playlist_songs` - Playlist-song relationships
 
 ### Environment Variables
 
-**Backend (.env):**
+#### Backend (.env)
 
 ```env
 DB_HOST=tune-tide-postgres
@@ -221,9 +185,14 @@ DB_USER=local-user
 DB_PASSWORD=local-password
 DB_OPTIONS=-c search_path=myschema
 PORT=3001
+MINIO_ENDPOINT=tune-tide-minio
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=minio_access_key
+MINIO_SECRET_KEY=minio_secret_key
+MINIO_BUCKET=tunetide-assets
 ```
 
-**Frontend (.env.local):**
+#### Frontend (.env.local)
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3001/api
@@ -269,3 +238,5 @@ This project is open source and available under the [MIT License](LICENSE).
 - Inspired by Spotify's music streaming interface
 - Sample data includes popular songs and artists
 - Built with modern web technologies for optimal performance
+
+## �� Happy listening!

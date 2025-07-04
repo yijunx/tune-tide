@@ -6,6 +6,7 @@ echo "=========================================="
 # Check if PostgreSQL is running (you'll need to set this up)
 echo "📋 Prerequisites:"
 echo "   - PostgreSQL should be running on tune-tide-postgres:5432"
+echo "   - MinIO should be running on tune-tide-minio:9000"
 echo "   - Node.js and npm should be installed"
 echo ""
 
@@ -28,6 +29,11 @@ DB_USER=local-user
 DB_PASSWORD=local-password
 DB_OPTIONS=-c search_path=myschema
 PORT=3001
+MINIO_ENDPOINT=tune-tide-minio
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=minio_access_key
+MINIO_SECRET_KEY=minio_secret_key
+MINIO_BUCKET=tunetide-assets
 EOF
 fi
 
@@ -38,6 +44,10 @@ npm run db:setup
 # Seed database
 echo "   Seeding database with initial data..."
 npm run db:seed
+
+# Setup MinIO and upload default artwork
+echo "   Setting up MinIO and uploading default artwork..."
+npm run upload-default-artwork
 
 echo "✅ Backend setup complete!"
 echo ""
@@ -66,5 +76,6 @@ echo ""
 echo "📚 API Documentation:"
 echo "   Backend API will be available at: http://localhost:3001/api"
 echo "   Health check: http://localhost:3001/api/health"
+echo "   MinIO Console: http://localhost:9001 (access_key: minio_access_key, secret_key: minio_secret_key)"
 echo ""
 echo "🎵 Happy listening!" 

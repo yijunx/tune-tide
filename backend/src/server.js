@@ -14,12 +14,14 @@ const artistsRouter = require('./routes/artists');
 const albumsRouter = require('./routes/albums');
 const songsRouter = require('./routes/songs');
 const playlistsRouter = require('./routes/playlists');
+const uploadRouter = require('./routes/upload');
 
 // Routes
 app.use('/api/artists', artistsRouter);
 app.use('/api/albums', albumsRouter);
 app.use('/api/songs', songsRouter);
 app.use('/api/playlists', playlistsRouter);
+app.use('/api/upload', uploadRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Play, Plus } from "lucide-react";
-import { songsApi, playlistsApi, searchApi, Song, Playlist } from "@/services/api";
+import { songsApi, playlistsApi, searchApi, uploadApi, Song, Playlist } from "@/services/api";
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -11,18 +11,23 @@ export default function Home() {
   const [newPlaylistName, setNewPlaylistName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [defaultArtworkUrl, setDefaultArtworkUrl] = useState<string>("");
+  const [artworkLoaded, setArtworkLoaded] = useState(false);
 
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [songsData, playlistsData] = await Promise.all([
+        const [songsData, playlistsData, defaultArtwork] = await Promise.all([
           songsApi.getAll(),
-          playlistsApi.getAll()
+          playlistsApi.getAll(),
+          uploadApi.getDefaultArtworkUrl()
         ]);
         setSongs(songsData);
         setPlaylists(playlistsData);
+        setDefaultArtworkUrl(defaultArtwork.defaultArtUrl);
+        setArtworkLoaded(true);
       } catch (err) {
         setError('Failed to load data. Make sure the backend is running on port 3001.');
         console.error('Error loading data:', err);
@@ -81,6 +86,13 @@ export default function Home() {
     }
   };
 
+  // Helper function to get artwork URL with fallback
+  const getArtworkUrl = (artworkUrl?: string) => {
+    if (artworkUrl) return artworkUrl;
+    if (artworkLoaded && defaultArtworkUrl) return defaultArtworkUrl;
+    return ''; // Return empty string to prevent loading static file
+  };
+
   if (loading) {
     return (
       <main className="max-w-2xl mx-auto p-4">
@@ -120,13 +132,21 @@ export default function Home() {
           {songs.map((song) => (
             <li key={song.id} className="flex items-center bg-white rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-shadow border">
               <img 
-                src={song.artwork_url || '/default-album-art.jpg'} 
+                src={getArtworkUrl(song.artwork_url)} 
                 alt={song.album_title + ' cover'} 
                 className="w-16 h-16 rounded-lg object-cover border"
                 onError={(e) => {
-                  e.currentTarget.src = '/default-album-art.jpg';
+                  if (defaultArtworkUrl) {
+                    e.currentTarget.src = defaultArtworkUrl;
+                  }
                 }}
+                style={{ display: getArtworkUrl(song.artwork_url) ? 'block' : 'none' }}
               />
+              {!getArtworkUrl(song.artwork_url) && (
+                <div className="w-16 h-16 rounded-lg border bg-gray-200 flex items-center justify-center">
+                  <span className="text-gray-400 text-xs">No Image</span>
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="font-semibold truncate">{song.title}</div>
                 <div className="text-gray-600 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
@@ -191,13 +211,21 @@ export default function Home() {
       {currentSong && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex items-center gap-4 shadow-lg">
           <img 
-            src={currentSong.artwork_url || '/default-album-art.jpg'} 
+            src={getArtworkUrl(currentSong.artwork_url)} 
             alt={currentSong.album_title + ' cover'} 
             className="w-12 h-12 rounded object-cover border"
             onError={(e) => {
-              e.currentTarget.src = '/default-album-art.jpg';
+              if (defaultArtworkUrl) {
+                e.currentTarget.src = defaultArtworkUrl;
+              }
             }}
+            style={{ display: getArtworkUrl(currentSong.artwork_url) ? 'block' : 'none' }}
           />
+          {!getArtworkUrl(currentSong.artwork_url) && (
+            <div className="w-12 h-12 rounded border bg-gray-200 flex items-center justify-center">
+              <span className="text-gray-400 text-xs">No Image</span>
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="font-medium truncate">{currentSong.title}</div>
             <div className="text-gray-600 text-sm truncate">{currentSong.artist_name} &bull; <span className="italic">{currentSong.album_title || 'Unknown Album'}</span></div>
