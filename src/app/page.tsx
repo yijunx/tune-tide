@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Plus, LogIn, User, LogOut, ChevronDown, ChevronRight, Trash2, History } from "lucide-react";
 import { songsApi, playlistsApi, searchApi, uploadApi, playHistoryApi, Song, Playlist, PlayHistory, PaginationInfo } from "@/services/api";
 import { authService, User as AuthUser } from "@/services/auth";
-import AudioPlayer from "@/components/AudioPlayer";
+import AudioPlayer from "../components/AudioPlayer";
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -533,7 +533,7 @@ export default function Home() {
                         className="p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                         title="Play"
                       >
-                        <Play size={20} />
+                        <Play size={20} className="ml-0.5" />
                       </button>
                     )}
                     <div className="relative group">
@@ -639,7 +639,7 @@ export default function Home() {
                                 className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors text-blue-600 dark:text-blue-400 ml-2"
                                 title="Play song"
                               >
-                                <Play size={14} />
+                                <Play size={14} className="ml-0.5" />
                               </button>
                             </li>
                           ))}
@@ -712,6 +712,7 @@ export default function Home() {
                       onClick={() => handlePlay({
                         id: historyItem.song_id,
                         title: historyItem.title,
+                        artist_id: historyItem.artist_id,
                         artist_name: historyItem.artist_name,
                         album_title: historyItem.album_title,
                         artwork_url: historyItem.artwork_url,
@@ -722,7 +723,7 @@ export default function Home() {
                       className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-full transition-colors text-blue-600 dark:text-blue-400"
                       title="Play song"
                     >
-                      <Play size={16} />
+                      <Play size={16} className="ml-0.5" />
                     </button>
                   </li>
                 ))}

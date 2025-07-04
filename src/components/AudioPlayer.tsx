@@ -283,7 +283,9 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
                 </div>
               </div>
             ) : (
-              <Play size={20} />
+              <div className="w-5 h-5 flex items-center justify-center">
+                <Play size={20} className="ml-0.5" />
+              </div>
             )}
           </button>
           
