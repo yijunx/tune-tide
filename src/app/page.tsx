@@ -297,7 +297,11 @@ export default function Home() {
           </div>
           <ul className="grid gap-4">
             {songs.map((song, index) => (
-              <li key={song.id} className="flex items-center bg-white dark:bg-gray-800 rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-700">
+              <li key={song.id} className={`flex items-center rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-all border ${
+                currentSong?.id === song.id 
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700' 
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+              }`}>
                 <img 
                   src={getArtworkUrl(song.artwork_url)} 
                   alt={song.album_title + ' cover'} 
@@ -320,34 +324,25 @@ export default function Home() {
                   <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
                 </div>
                 <div className="flex flex-col gap-2 items-end">
-                  <button 
-                    onClick={() => handlePlay(song)} 
-                    className={`p-2 rounded-full transition-colors ${
-                      currentSong?.id === song.id 
-                        ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                    }`} 
-                    title="Play"
-                  >
-                    {currentSong?.id === song.id && isLoadingSong ? (
-                      <div className="w-5 h-5 flex items-center justify-center">
-                        <svg className="w-5 h-5 animate-pulse" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
+                  {currentSong?.id === song.id ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-end gap-0.5 h-4">
+                        <div className="w-0.5 bg-blue-500 rounded-full animate-sound-bar-1"></div>
+                        <div className="w-0.5 bg-blue-500 rounded-full animate-sound-bar-2"></div>
+                        <div className="w-0.5 bg-blue-500 rounded-full animate-sound-bar-3"></div>
+                        <div className="w-0.5 bg-blue-500 rounded-full animate-sound-bar-4"></div>
                       </div>
-                    ) : currentSong?.id === song.id ? (
-                      <div className="w-5 h-5 flex items-center justify-center">
-                        <div className="flex items-end gap-0.5 h-4">
-                          <div className="w-0.5 bg-white rounded-full animate-sound-bar-1"></div>
-                          <div className="w-0.5 bg-white rounded-full animate-sound-bar-2"></div>
-                          <div className="w-0.5 bg-white rounded-full animate-sound-bar-3"></div>
-                          <div className="w-0.5 bg-white rounded-full animate-sound-bar-4"></div>
-                        </div>
-                      </div>
-                    ) : (
+                      <span className="text-xs text-blue-500 font-medium">Now Playing</span>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => handlePlay(song)} 
+                      className="p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                      title="Play"
+                    >
                       <Play size={20} />
-                    )}
-                  </button>
+                    </button>
+                  )}
                   <div className="relative group">
                     <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300" title="Add to playlist">
                       <Plus size={20} />
