@@ -6,8 +6,25 @@ const router = express.Router();
 // Get all playlists for the logged-in user
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM playlists WHERE user_id = $1 ORDER BY name', [req.user.id]);
-    res.json(result.rows);
+    // Get all playlists for the user
+    const playlistsResult = await pool.query('SELECT * FROM playlists WHERE user_id = $1 ORDER BY name', [req.user.id]);
+    const playlists = playlistsResult.rows;
+    
+    // For each playlist, get its songs
+    for (let playlist of playlists) {
+      const songsResult = await pool.query(`
+        SELECT s.*, ar.name as artist_name, al.title as album_title, al.artwork_url, ps.position
+        FROM playlist_songs ps
+        JOIN songs s ON ps.song_id = s.id
+        JOIN artists ar ON s.artist_id = ar.id
+        LEFT JOIN albums al ON s.album_id = al.id
+        WHERE ps.playlist_id = $1
+        ORDER BY ps.position
+      `, [playlist.id]);
+      playlist.songs = songsResult.rows;
+    }
+    
+    res.json(playlists);
   } catch (error) {
     console.error('Error fetching playlists:', error);
     res.status(500).json({ error: 'Internal server error' });

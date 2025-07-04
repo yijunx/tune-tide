@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, Plus, LogIn, User, LogOut } from "lucide-react";
+import { Play, Plus, LogIn, User, LogOut, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { songsApi, playlistsApi, searchApi, uploadApi, Song, Playlist, PaginationInfo } from "@/services/api";
 import { authService, User as AuthUser } from "@/services/auth";
 import AudioPlayer from "@/components/AudioPlayer";
@@ -18,6 +18,7 @@ export default function Home() {
   const [artworkLoaded, setArtworkLoaded] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSong, setIsLoadingSong] = useState(false);
+  const [expandedPlaylists, setExpandedPlaylists] = useState<Set<number>>(new Set());
   
   // Pagination state
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
@@ -198,9 +199,19 @@ export default function Home() {
       // Refresh playlists to show updated data
       const updatedPlaylists = await playlistsApi.getAll();
       setPlaylists(updatedPlaylists);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message && err.message.includes('Song already in playlist')) {
+        alert('This song is already in your playlist.');
+      } else {
+        alert('Failed to add song to playlist.');
+      }
       console.error('Error adding song to playlist:', err);
     }
+  };
+
+  // Helper to check if a song is already in a playlist
+  const isSongInPlaylist = (song: Song, playlist: Playlist) => {
+    return playlist.songs?.some((s) => s.id === song.id);
   };
 
   const handleCreatePlaylist = async () => {
@@ -214,6 +225,37 @@ export default function Home() {
     } catch (err) {
       console.error('Error creating playlist:', err);
     }
+  };
+
+  const handleDeletePlaylist = async (playlistId: number) => {
+    if (!confirm('Are you sure you want to delete this playlist?')) return;
+    
+    try {
+      await playlistsApi.delete(playlistId);
+      const updatedPlaylists = await playlistsApi.getAll();
+      setPlaylists(updatedPlaylists);
+      // Remove from expanded set if it was expanded
+      setExpandedPlaylists(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(playlistId);
+        return newSet;
+      });
+    } catch (err) {
+      console.error('Error deleting playlist:', err);
+      alert('Failed to delete playlist.');
+    }
+  };
+
+  const togglePlaylistExpansion = (playlistId: number) => {
+    setExpandedPlaylists(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(playlistId)) {
+        newSet.delete(playlistId);
+      } else {
+        newSet.add(playlistId);
+      }
+      return newSet;
+    });
   };
 
   const handleLogin = () => {
@@ -372,15 +414,19 @@ export default function Home() {
                     </button>
                   )}
                   <div className="relative group">
-                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300" title="Add to playlist">
+                    <button 
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"
+                      title="Add to playlist"
+                    >
                       <Plus size={20} />
                     </button>
                     <div className="absolute left-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md p-2 hidden group-hover:block z-10 min-w-[120px]">
                       {playlists.map((pl) => (
                         <button
                           key={pl.id}
-                          className="block w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                          className="block w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={() => handleAddToPlaylist(song, pl.id)}
+                          disabled={isSongInPlaylist(song, pl)}
                         >
                           {pl.name}
                         </button>
@@ -424,19 +470,60 @@ export default function Home() {
             </div>
             <ul>
               {playlists.map((pl) => (
-                <li key={pl.id} className="mb-2">
-                  <div className="font-semibold text-gray-900 dark:text-white">{pl.name}</div>
-                  <ul className="ml-4 text-sm">
-                    {pl.songs && pl.songs.length > 0 ? (
-                      pl.songs.map((song) => (
-                        <li key={song.id} className="text-gray-900 dark:text-white flex items-center gap-2">{song.title} <span className="text-gray-500 dark:text-gray-400">by {song.artist_name}</span>{song.genre && (
-                          <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">{song.genre}</span>
-                        )}</li>
-                      ))
-                    ) : (
-                      <li className="text-gray-400 dark:text-gray-500">No songs yet</li>
-                    )}
-                  </ul>
+                <li key={pl.id} className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => togglePlaylistExpansion(pl.id)}
+                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                        title={expandedPlaylists.has(pl.id) ? "Collapse" : "Expand"}
+                      >
+                        {expandedPlaylists.has(pl.id) ? (
+                          <ChevronDown size={16} className="text-gray-600 dark:text-gray-400" />
+                        ) : (
+                          <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
+                        )}
+                      </button>
+                      <span className="font-semibold text-gray-900 dark:text-white">{pl.name}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        ({pl.songs?.length || 0} songs)
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleDeletePlaylist(pl.id)}
+                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors text-red-600 dark:text-red-400"
+                      title="Delete playlist"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  {expandedPlaylists.has(pl.id) && (
+                    <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+                      {pl.songs && pl.songs.length > 0 ? (
+                        <ul className="space-y-2">
+                          {pl.songs.map((song) => (
+                            <li key={song.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 dark:text-white truncate">{song.title}</div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                  {song.artist_name} • {song.album_title || 'Unknown Album'}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handlePlay(song)}
+                                className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors text-blue-600 dark:text-blue-400 ml-2"
+                                title="Play song"
+                              >
+                                <Play size={14} />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-gray-500 dark:text-gray-400 text-center py-4">No songs yet</div>
+                      )}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
