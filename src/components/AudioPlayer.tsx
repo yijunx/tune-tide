@@ -30,6 +30,7 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
   const [isPlayRequestPending, setIsPlayRequestPending] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const playRequestRef = useRef<Promise<void> | null>(null);
+  const currentTimeRef = useRef(0);
 
   // Reset player when song changes
   useEffect(() => {
@@ -188,7 +189,9 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
   // Handle time update
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
+      const newTime = audioRef.current.currentTime;
+      setCurrentTime(newTime);
+      currentTimeRef.current = newTime;
     }
   };
 
@@ -233,6 +236,31 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
         audioRef.current.volume = 0;
         setIsMuted(true);
       }
+    }
+  };
+
+  // Handle previous button with smart behavior
+  const handlePrevious = () => {
+    if (!audioRef.current) return;
+    
+    console.log('Previous button clicked - Ref currentTime:', currentTimeRef.current, 'State currentTime:', currentTime, 'IsPlaying:', isPlaying);
+    
+    // Only apply the 5-second rule if the song is actually playing and has been playing for a while
+    // If the song just started or is paused, always go to previous song
+    if (isPlaying && currentTimeRef.current > 5) {
+      console.log('Restarting current song from beginning - NOT switching songs');
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
+      currentTimeRef.current = 0;
+      // Do NOT call onPrevious() - just restart the current song
+      return;
+    } else {
+      console.log('Going to previous song');
+      // Go to previous song if:
+      // - Song is not playing
+      // - Song is within first 5 seconds
+      // - Song just started
+      onPrevious?.();
     }
   };
 
@@ -312,7 +340,7 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
           )}
           
           <button 
-            onClick={onPrevious}
+            onClick={handlePrevious}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-full transition-colors"
             title="Previous"
             disabled={isLoading}
