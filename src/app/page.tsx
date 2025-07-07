@@ -699,15 +699,13 @@ export default function Home() {
                     alt={song.album_title + ' cover'} 
                     className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
                     onError={(e) => {
-                      if (defaultArtworkUrl) {
-                        e.currentTarget.src = defaultArtworkUrl;
-                      }
+                      e.currentTarget.src = '/music-icon.svg';
                     }}
                     style={{ display: getArtworkUrl(song.artwork_url) ? 'block' : 'none' }}
                   />
                   {!getArtworkUrl(song.artwork_url) && (
                     <div className="w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      <span className="text-gray-400 dark:text-gray-500 text-xs">No Image</span>
+                      <img src="/music-icon.svg" alt="Music" className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -894,15 +892,13 @@ export default function Home() {
                       alt={historyItem.album_title + ' cover'} 
                       className="w-12 h-12 rounded object-cover border border-gray-200 dark:border-gray-600"
                       onError={(e) => {
-                        if (defaultArtworkUrl) {
-                          e.currentTarget.src = defaultArtworkUrl;
-                        }
+                        e.currentTarget.src = '/music-icon.svg';
                       }}
                       style={{ display: getArtworkUrl(historyItem.artwork_url) ? 'block' : 'none' }}
                     />
                     {!getArtworkUrl(historyItem.artwork_url) && (
                       <div className="w-12 h-12 rounded border border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        <span className="text-gray-400 dark:text-gray-500 text-xs">No Image</span>
+                        <img src="/music-icon.svg" alt="Music" className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
@@ -968,8 +964,6 @@ export default function Home() {
         {/* Recommendations Tab Content */}
         {activeTab === 'recommendations' && user && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Your Recommendations</h2>
-            
             {recommendationsLoading ? (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                 Loading recommendations...
@@ -978,8 +972,6 @@ export default function Home() {
               <>
                 {/* User Preferences Section */}
                 <div className="mb-6">
-                  <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">Your Music Taste</h3>
-                  
                   {/* Top Genres */}
                   {topGenres && topGenres.length > 0 && (
                     <div className="mb-4">
@@ -1018,7 +1010,6 @@ export default function Home() {
                 {/* Recommended Songs */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">Recommended for You</h3>
                     <button
                       onClick={loadRecommendations}
                       className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
@@ -1037,9 +1028,12 @@ export default function Home() {
                           <div className="flex items-start space-x-3">
                             <div className="flex-shrink-0">
                               <img
-                                src={song.artwork_url || '/default-album-art.png'}
+                                src={song.artwork_url || '/music-icon.svg'}
                                 alt={song.title}
                                 className="w-12 h-12 rounded-md object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/music-icon.svg';
+                                }}
                               />
                             </div>
                             <div className="flex-1 min-w-0">

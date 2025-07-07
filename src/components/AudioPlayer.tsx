@@ -231,13 +231,11 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
         {/* Song Info */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <img 
-            src={currentSong.artwork_url || defaultArtworkUrl || '/default-album-art.jpg'} 
+            src={currentSong.artwork_url || defaultArtworkUrl || '/music-icon.svg'} 
             alt={currentSong.album_title + ' cover'} 
             className="w-12 h-12 rounded object-cover border"
             onError={(e) => {
-              if (defaultArtworkUrl) {
-                e.currentTarget.src = defaultArtworkUrl;
-              }
+              e.currentTarget.src = '/music-icon.svg';
             }}
           />
           <div className="min-w-0 flex-1">
