@@ -313,7 +313,7 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
           
           <button 
             onClick={onPrevious}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-full transition-colors"
             title="Previous"
             disabled={isLoading}
           >
@@ -354,7 +354,7 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
           
           <button 
             onClick={onNext}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-full transition-colors"
             title="Next"
             disabled={isLoading}
           >
@@ -402,7 +402,7 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
         <div className="flex items-center gap-2">
           <button 
             onClick={toggleMute}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-full transition-colors"
             title={isMuted ? 'Unmute' : 'Mute'}
           >
             {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}

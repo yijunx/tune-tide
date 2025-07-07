@@ -292,6 +292,22 @@ export default function Home() {
     }
   };
 
+  const handleRemoveFromPlaylist = async (songId: number, playlistId: number) => {
+    if (!confirm('Are you sure you want to remove this song from the playlist?')) {
+      return;
+    }
+    
+    try {
+      await playlistsApi.removeSong(playlistId, songId);
+      // Refresh playlists to show updated data
+      const updatedPlaylists = await playlistsApi.getAll();
+      setPlaylists(updatedPlaylists);
+    } catch (err) {
+      alert('Failed to remove song from playlist.');
+      console.error('Error removing song from playlist:', err);
+    }
+  };
+
   // Helper to check if a song is already in a playlist
   const isSongInPlaylist = (song: Song, playlist: Playlist) => {
     return playlist.songs?.some((s) => s.id === song.id);
@@ -878,13 +894,22 @@ export default function Home() {
                                   {song.artist_name} • {song.album_title || 'Unknown Album'}
                                 </div>
                               </div>
-                              <button
-                                onClick={() => handlePlay(song, pl.songs || [], pl.songs?.findIndex(s => s.id === song.id) || 0)}
-                                className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors text-blue-600 dark:text-blue-400 ml-2"
-                                title="Play song"
-                              >
-                                <Play size={14} className="ml-0.5" />
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handlePlay(song, pl.songs || [], pl.songs?.findIndex(s => s.id === song.id) || 0)}
+                                  className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors text-blue-600 dark:text-blue-400"
+                                  title="Play song"
+                                >
+                                  <Play size={14} className="ml-0.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveFromPlaylist(song.id, pl.id)}
+                                  className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors text-red-600 dark:text-red-400"
+                                  title="Remove from playlist"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </li>
                           ))}
                         </ul>
