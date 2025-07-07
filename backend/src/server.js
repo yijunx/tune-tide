@@ -40,6 +40,7 @@ const audioRouter = require('./routes/audio');
 const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
 const recommendationsRouter = require('./routes/recommendations');
+const communitiesRouter = require('./routes/communities');
 
 // Routes
 app.use('/api/artists', artistsRouter);
@@ -52,6 +53,7 @@ app.use('/api/audio', audioRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/recommendations', recommendationsRouter);
+app.use('/api/communities', communitiesRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

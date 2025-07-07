@@ -92,6 +92,21 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
+// Helper to get auth headers for fetch
+function getAuthHeaders(): Record<string, string> {
+  let token: string | null = null;
+  if (typeof window !== 'undefined') {
+    token = localStorage.getItem('auth_token');
+  }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 // Songs API
 export const songsApi = {
   getAll: (page = 1, limit = 20, search?: string) => {
@@ -238,4 +253,148 @@ export const recommendationsApi = {
 
   regenerateRecommendations: () =>
     apiCall<{ message: string }>(`/recommendations/regenerate`, { method: 'POST' }),
+};
+
+// Community types
+export interface Community {
+  id: number;
+  name: string;
+  description: string;
+  genre?: string;
+  created_by?: number;
+  creator_name?: string;
+  is_public: boolean;
+  member_count: number;
+  user_role?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CommunityPost {
+  id: number;
+  community_id: number;
+  user_id: number;
+  title: string;
+  content: string;
+  song_id?: number;
+  post_type: 'discussion' | 'music_share' | 'announcement';
+  likes_count: number;
+  user_liked: boolean;
+  author_name: string;
+  author_picture?: string;
+  song_title?: string;
+  artist_name?: string;
+  artwork_url?: string;
+  audio_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Community API
+export const communitiesApi = {
+  // Get public communities
+  getPublic: async (limit = 20, offset = 0): Promise<Community[]> => {
+    const response = await fetch(`${API_BASE_URL}/communities/public?limit=${limit}&offset=${offset}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch communities');
+    return response.json();
+  },
+
+  // Get communities by genre
+  getByGenre: async (genre: string, limit = 20, offset = 0): Promise<Community[]> => {
+    const response = await fetch(`${API_BASE_URL}/communities/genre/${encodeURIComponent(genre)}?limit=${limit}&offset=${offset}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch communities by genre');
+    return response.json();
+  },
+
+  // Get user's communities
+  getMyCommunities: async (): Promise<Community[]> => {
+    const response = await fetch(`${API_BASE_URL}/communities/my`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch user communities');
+    return response.json();
+  },
+
+  // Get recommended communities
+  getRecommended: async (limit = 10): Promise<Community[]> => {
+    const response = await fetch(`${API_BASE_URL}/communities/recommended?limit=${limit}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch recommended communities');
+    return response.json();
+  },
+
+  // Get community details
+  getById: async (id: number): Promise<Community> => {
+    const response = await fetch(`${API_BASE_URL}/communities/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch community');
+    return response.json();
+  },
+
+  // Create community
+  create: async (data: { name: string; description: string; genre?: string; isPublic?: boolean }): Promise<Community> => {
+    const response = await fetch(`${API_BASE_URL}/communities`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create community');
+    return response.json();
+  },
+
+  // Join community
+  join: async (id: number): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/communities/${id}/join`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to join community');
+    return response.json();
+  },
+
+  // Leave community
+  leave: async (id: number): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/communities/${id}/leave`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to leave community');
+    return response.json();
+  },
+
+  // Get community posts
+  getPosts: async (id: number, limit = 20, offset = 0): Promise<CommunityPost[]> => {
+    const response = await fetch(`${API_BASE_URL}/communities/${id}/posts?limit=${limit}&offset=${offset}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch community posts');
+    return response.json();
+  },
+
+  // Create post
+  createPost: async (communityId: number, data: { title: string; content: string; songId?: number; postType?: string }): Promise<CommunityPost> => {
+    const response = await fetch(`${API_BASE_URL}/communities/${communityId}/posts`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create post');
+    return response.json();
+  },
+
+  // Like/unlike post
+  togglePostLike: async (postId: number): Promise<{ liked: boolean }> => {
+    const response = await fetch(`${API_BASE_URL}/communities/posts/${postId}/like`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to toggle post like');
+    return response.json();
+  },
 };

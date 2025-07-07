@@ -95,6 +95,52 @@ CREATE TABLE IF NOT EXISTS recommendation_cache (
     UNIQUE(user_id, song_id)
 );
 
+-- Create communities table
+CREATE TABLE IF NOT EXISTS communities (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    genre VARCHAR(100),
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    is_public BOOLEAN DEFAULT TRUE,
+    member_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create community_members table
+CREATE TABLE IF NOT EXISTS community_members (
+    id SERIAL PRIMARY KEY,
+    community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(50) DEFAULT 'member', -- 'admin', 'moderator', 'member'
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(community_id, user_id)
+);
+
+-- Create community_posts table
+CREATE TABLE IF NOT EXISTS community_posts (
+    id SERIAL PRIMARY KEY,
+    community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    song_id INTEGER REFERENCES songs(id) ON DELETE SET NULL,
+    post_type VARCHAR(50) DEFAULT 'discussion', -- 'discussion', 'music_share', 'announcement'
+    likes_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create community_post_likes table
+CREATE TABLE IF NOT EXISTS community_post_likes (
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER REFERENCES community_posts(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(post_id, user_id)
+);
+
 -- Create indexes for better search performance
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -116,6 +162,18 @@ CREATE INDEX IF NOT EXISTS idx_user_preferences_artist_id ON user_preferences(ar
 CREATE INDEX IF NOT EXISTS idx_recommendation_cache_user_id ON recommendation_cache(user_id);
 CREATE INDEX IF NOT EXISTS idx_recommendation_cache_score ON recommendation_cache(score DESC);
 
+-- Create indexes for communities
+CREATE INDEX IF NOT EXISTS idx_communities_created_by ON communities(created_by);
+CREATE INDEX IF NOT EXISTS idx_communities_genre ON communities(genre);
+CREATE INDEX IF NOT EXISTS idx_communities_is_public ON communities(is_public);
+CREATE INDEX IF NOT EXISTS idx_community_members_community_id ON community_members(community_id);
+CREATE INDEX IF NOT EXISTS idx_community_members_user_id ON community_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_posts_community_id ON community_posts(community_id);
+CREATE INDEX IF NOT EXISTS idx_community_posts_user_id ON community_posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_community_posts_post_type ON community_posts(post_type);
+CREATE INDEX IF NOT EXISTS idx_community_post_likes_post_id ON community_post_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_community_post_likes_user_id ON community_post_likes(user_id);
+
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -132,4 +190,6 @@ CREATE TRIGGER update_albums_updated_at BEFORE UPDATE ON albums FOR EACH ROW EXE
 CREATE TRIGGER update_songs_updated_at BEFORE UPDATE ON songs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_playlists_updated_at BEFORE UPDATE ON playlists FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_recommendation_cache_updated_at BEFORE UPDATE ON recommendation_cache FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
+CREATE TRIGGER update_recommendation_cache_updated_at BEFORE UPDATE ON recommendation_cache FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_communities_updated_at BEFORE UPDATE ON communities FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_community_posts_updated_at BEFORE UPDATE ON community_posts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 

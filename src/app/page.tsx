@@ -4,6 +4,7 @@ import { Play, Plus, LogIn, User, LogOut, ChevronDown, ChevronRight, Trash2, His
 import { songsApi, playlistsApi, searchApi, uploadApi, playHistoryApi, recommendationsApi, Song, Playlist, PlayHistory, PaginationInfo } from "@/services/api";
 import { authService, User as AuthUser } from "@/services/auth";
 import AudioPlayer from "../components/AudioPlayer";
+import Communities from "../components/Communities";
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -19,7 +20,7 @@ export default function Home() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSong, setIsLoadingSong] = useState(false);
   const [expandedPlaylists, setExpandedPlaylists] = useState<Set<number>>(new Set());
-  const [activeTab, setActiveTab] = useState<'songs' | 'playlists' | 'history' | 'recommendations'>('songs');
+  const [activeTab, setActiveTab] = useState<'songs' | 'playlists' | 'history' | 'recommendations' | 'communities'>('songs');
   const [playHistory, setPlayHistory] = useState<PlayHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPagination, setHistoryPagination] = useState<{ total: number; hasMore: boolean }>({ total: 0, hasMore: true });
@@ -375,7 +376,7 @@ export default function Home() {
     }
   };
 
-  const handleTabChange = (tab: 'songs' | 'playlists' | 'history' | 'recommendations') => {
+  const handleTabChange = (tab: 'songs' | 'playlists' | 'history' | 'recommendations' | 'communities') => {
     setActiveTab(tab);
     if (tab === 'history' && user) {
       loadPlayHistory(); // Always refresh when switching to history tab
@@ -642,6 +643,16 @@ export default function Home() {
               >
                 <History size={14} />
                 History
+              </button>
+              <button
+                onClick={() => handleTabChange('communities')}
+                className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'communities'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Communities
               </button>
             </>
           )}
@@ -1063,6 +1074,13 @@ export default function Home() {
                 </div>
               </>
             )}
+          </div>
+        )}
+        
+        {/* Communities Tab Content */}
+        {activeTab === 'communities' && user && (
+          <div className="mb-8">
+            <Communities user={user} onPlaySong={handlePlay} />
           </div>
         )}
       </main>
