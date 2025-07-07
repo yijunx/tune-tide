@@ -9,8 +9,8 @@ const client = weaviate.client({
 });
 
 // Initialize vLLM Llama3 client for both text generation and embeddings
-const VLLM_BASE_URL = 'http://10.2.4.153:80';
-const EMBEDDING_MODEL = 'ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4';
+const VLLM_BASE_URL = 'http://10.2.4.155:80';
+const EMBEDDING_MODEL = 'BAAI/bge-m3';
 
 class VectorSearchService {
   constructor() {
@@ -32,54 +32,62 @@ class VectorSearchService {
 
   async createSchema() {
     try {
-      // Check if Song class exists
+      // Check if SongV2 class exists
       const schema = await client.schema.getter().do();
-      const songClassExists = schema.classes.some(cls => cls.class === 'Song');
+      const songClassExists = schema.classes.some(cls => cls.class === 'SongV2');
       
-      if (!songClassExists) {
-        // Create Song class schema without text2vec-transformers
-        const songClass = {
-          class: 'Song',
-          description: 'A song with vector embeddings for semantic search',
-          properties: [
-            {
-              name: 'songId',
-              dataType: ['int'],
-              description: 'The ID of the song in the main database'
-            },
-            {
-              name: 'title',
-              dataType: ['text'],
-              description: 'The title of the song'
-            },
-            {
-              name: 'artistName',
-              dataType: ['text'],
-              description: 'The name of the artist'
-            },
-            {
-              name: 'albumTitle',
-              dataType: ['text'],
-              description: 'The title of the album'
-            },
-            {
-              name: 'genre',
-              dataType: ['text'],
-              description: 'The genre of the song'
-            },
-            {
-              name: 'description',
-              dataType: ['text'],
-              description: 'The description of the song for semantic search'
-            }
-          ],
-          // Remove vectorizer to use manual vectors
-          vectorizer: 'none'
-        };
-
-        await client.schema.classCreator().withClass(songClass).do();
-        console.log('✓ Created Song class in Weaviate');
+      if (songClassExists) {
+        console.log('✓ SongV2 class already exists in Weaviate');
+        return;
       }
+      
+      // Create SongV2 class schema for BGE-M3 (1024 dimensions)
+      const songClass = {
+        class: 'SongV2',
+        description: 'A song with vector embeddings for semantic search using BGE-M3',
+        properties: [
+          {
+            name: 'songId',
+            dataType: ['int'],
+            description: 'The ID of the song in the main database'
+          },
+          {
+            name: 'title',
+            dataType: ['text'],
+            description: 'The title of the song'
+          },
+          {
+            name: 'artistName',
+            dataType: ['text'],
+            description: 'The name of the artist'
+          },
+          {
+            name: 'albumTitle',
+            dataType: ['text'],
+            description: 'The title of the album'
+          },
+          {
+            name: 'genre',
+            dataType: ['text'],
+            description: 'The genre of the song'
+          },
+          {
+            name: 'description',
+            dataType: ['text'],
+            description: 'The description of the song for semantic search'
+          }
+        ],
+        // Remove vectorizer to use manual vectors
+        vectorizer: 'none',
+        // Set vector index config for BGE-M3 dimensions
+        vectorIndexConfig: {
+          vectorCacheMaxObjects: 100000,
+          distance: 'cosine'
+        }
+      };
+
+      await client.schema.classCreator().withClass(songClass).do();
+      console.log('✓ Created SongV2 class in Weaviate with BGE-M3 dimensions');
     } catch (error) {
       console.error('Error creating Weaviate schema:', error.message);
     }
@@ -105,19 +113,45 @@ class VectorSearchService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.message && errorData.message.includes("does not support Embeddings API")) {
+          console.log('vLLM model does not support embeddings, using fallback method');
+          return this.generateFallbackEmbedding(text);
+        }
         throw new Error(`vLLM API error: ${response.statusText}`);
       }
 
       const data = await response.json();
+      // Log the full response for debugging
+      if (!data || !data.data || !Array.isArray(data.data) || !data.data[0] || !data.data[0].embedding) {
+        console.error('Unexpected embedding API response:', JSON.stringify(data));
+        throw new Error('Invalid embedding API response structure');
+      }
       return data.data[0].embedding;
     } catch (error) {
       console.error('Error generating embedding:', error);
       if (error.name === 'AbortError') {
         console.error('vLLM API request timed out');
       }
-      // Return a simple fallback embedding (zeros)
-      return new Array(4096).fill(0); // Llama3-70B typical embedding size
+      // Return a simple fallback embedding
+      return this.generateFallbackEmbedding(text);
     }
+  }
+
+  generateFallbackEmbedding(text) {
+    // Simple hash-based embedding as fallback
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256').update(text.toLowerCase()).digest('hex');
+    
+    // Convert hash to array of numbers (0-1 range) - BGE-M3 uses 1024 dimensions
+    const embedding = [];
+    for (let i = 0; i < 1024; i++) {
+      const hashIndex = i % hash.length;
+      const charCode = hash.charCodeAt(hashIndex);
+      embedding.push((charCode / 255) * 2 - 1); // Convert to -1 to 1 range
+    }
+    
+    return embedding;
   }
 
   async generateSongDescription(song) {
@@ -130,7 +164,7 @@ class VectorSearchService {
       Write a description that would help someone find this song when searching with natural language queries like "I'm feeling sad" or "need a party song". 
       Focus on the emotional tone, energy level, and style of the music.`;
 
-      const response = await fetch(`${VLLM_BASE_URL}/v1/completions`, {
+      const response = await fetch(`http://10.2.4.153:80/v1/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,7 +197,6 @@ class VectorSearchService {
       let description = song.description;
       if (!description) {
         description = await this.generateSongDescription(song);
-        
         // Update the song in the database with the generated description
         await pool.query(
           'UPDATE songs SET description = $1 WHERE id = $2',
@@ -178,19 +211,31 @@ class VectorSearchService {
       // Generate UUID for Weaviate
       const songUuid = uuidv4();
 
-      // Check if song already exists in Weaviate by songId
+      // Check if song already exists in Weaviate by songId using GraphQL
+      let existingSong = null;
       try {
-        const existingSongs = await client.data.getter()
-          .withClassName('Song')
+        const result = await client.graphql.get()
+          .withClassName('SongV2')
           .withFields('songId _additional { id }')
+          .withWhere({
+            path: ['songId'],
+            operator: 'Equal',
+            valueInt: song.id
+          })
+          .withLimit(1)
           .do();
+        if (result.data.Get && result.data.Get.SongV2 && result.data.Get.SongV2.length > 0) {
+          existingSong = result.data.Get.SongV2[0];
+        }
+      } catch (weaviateError) {
+        console.error('Error querying Weaviate for existing song:', weaviateError.message);
+      }
 
-        const existingSong = existingSongs.data.Get.Song.find(s => s.songId === song.id);
-
+      try {
         if (existingSong) {
           // Update existing song
           await client.data.updater()
-            .withClassName('Song')
+            .withClassName('SongV2')
             .withId(existingSong._additional.id)
             .withProperties({
               songId: song.id,
@@ -205,7 +250,7 @@ class VectorSearchService {
         } else {
           // Create new song
           await client.data.creator()
-            .withClassName('Song')
+            .withClassName('SongV2')
             .withId(songUuid)
             .withProperties({
               songId: song.id,
@@ -218,7 +263,6 @@ class VectorSearchService {
             .withVector(embedding)
             .do();
         }
-
         console.log(`✓ Indexed song: ${song.title}`);
       } catch (weaviateError) {
         console.error(`Weaviate error for song ${song.title}:`, weaviateError.message);
@@ -237,7 +281,7 @@ class VectorSearchService {
       // Search in Weaviate
       const result = await client.graphql
         .get()
-        .withClassName('Song')
+        .withClassName('SongV2')
         .withFields('songId title artistName albumTitle genre description _additional { distance }')
         .withNearVector({
           vector: queryEmbedding
@@ -245,7 +289,7 @@ class VectorSearchService {
         .withLimit(limit)
         .do();
 
-      const songs = result.data.Get.Song;
+      const songs = result.data.Get.SongV2;
       
       if (songs.length === 0) {
         // Fallback to text search if no vector results
@@ -255,7 +299,7 @@ class VectorSearchService {
       // Get full song details from database
       const songIds = songs.map(s => s.songId);
       const songDetails = await pool.query(
-        `SELECT s.*, a.name as artist_name, al.title as album_title 
+        `SELECT s.id, s.title, s.artist_id, s.album_id, s.audio_url, al.artwork_url, s.duration, s.genre, s.description, a.name as artist_name, al.title as album_title 
          FROM songs s 
          JOIN artists a ON s.artist_id = a.id 
          LEFT JOIN albums al ON s.album_id = al.id 
@@ -276,7 +320,7 @@ class VectorSearchService {
   async fallbackTextSearch(query, limit = 10) {
     try {
       const result = await pool.query(
-        `SELECT s.*, a.name as artist_name, al.title as album_title 
+        `SELECT s.id, s.title, s.artist_id, s.album_id, s.audio_url, al.artwork_url, s.duration, s.genre, s.description, a.name as artist_name, al.title as album_title 
          FROM songs s 
          JOIN artists a ON s.artist_id = a.id 
          LEFT JOIN albums al ON s.album_id = al.id 
@@ -298,7 +342,7 @@ class VectorSearchService {
       console.log('Starting to index all songs...');
       
       const result = await pool.query(
-        `SELECT s.*, a.name as artist_name, al.title as album_title 
+        `SELECT s.id, s.title, s.artist_id, s.album_id, s.audio_url, al.artwork_url, s.duration, s.genre, s.description, a.name as artist_name, al.title as album_title 
          FROM songs s 
          JOIN artists a ON s.artist_id = a.id 
          LEFT JOIN albums al ON s.album_id = al.id`
@@ -340,4 +384,4 @@ class VectorSearchService {
   }
 }
 
-module.exports = new VectorSearchService(); 
+module.exports = new VectorSearchService();
