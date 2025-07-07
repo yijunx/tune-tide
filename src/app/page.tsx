@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, Plus, LogIn, User, LogOut, ChevronDown, ChevronRight, Trash2, History } from "lucide-react";
+import { Play, Plus, LogIn, User, LogOut, ChevronDown, ChevronRight, Trash2, History, ArrowLeft, ExternalLink } from "lucide-react";
 import { songsApi, playlistsApi, searchApi, uploadApi, playHistoryApi, recommendationsApi, Song, Playlist, PlayHistory, PaginationInfo } from "@/services/api";
 import { authService, User as AuthUser } from "@/services/auth";
 import AudioPlayer from "../components/AudioPlayer";
@@ -34,6 +34,10 @@ export default function Home() {
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [topGenres, setTopGenres] = useState<Array<{ genre: string; preference_score: number; play_count: number }>>([]);
   const [topArtists, setTopArtists] = useState<Array<{ artist_name: string; preference_score: number; play_count: number }>>([]);
+  
+  // Songs sub-tab state
+  const [songsSubTab, setSongsSubTab] = useState<'list' | 'details'>('list');
+  const [selectedSongDetails, setSelectedSongDetails] = useState<Song | null>(null);
   
   // Pagination state
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
@@ -407,7 +411,11 @@ export default function Home() {
 
   const handleTabChange = (tab: 'songs' | 'playlists' | 'history' | 'recommendations' | 'communities') => {
     setActiveTab(tab);
-    if (tab === 'history' && user) {
+    if (tab === 'songs') {
+      // Reset songs sub-tab to list view when switching to songs tab
+      setSongsSubTab('list');
+      setSelectedSongDetails(null);
+    } else if (tab === 'history' && user) {
       loadPlayHistory(); // Always refresh when switching to history tab
     } else if (tab === 'recommendations' && user) {
       loadRecommendations(); // Always refresh when switching to recommendations tab
@@ -578,6 +586,18 @@ export default function Home() {
     return ''; // Return empty string to prevent loading static file
   };
 
+  // Handler for viewing song details
+  const handleViewSongDetails = (song: Song) => {
+    setSelectedSongDetails(song);
+    setSongsSubTab('details');
+  };
+
+  // Handler for going back to songs list
+  const handleBackToSongsList = () => {
+    setSongsSubTab('list');
+    setSelectedSongDetails(null);
+  };
+
   if (loading) {
     return (
       <main className="max-w-2xl mx-auto p-4">
@@ -722,107 +742,256 @@ export default function Home() {
         {/* Songs Tab Content */}
         {activeTab === 'songs' && (
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Songs</h2>
-                {pagination && (
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    ({pagination.totalItems} found)
-                  </span>
-                )}
-                {searchLoading && (
-                  <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Searching...</span>
-                  </div>
-                )}
-              </div>
+            {/* Songs Sub-tab Navigation */}
+            <div className="flex border-b-2 border-gray-200 dark:border-gray-700 mb-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 rounded-t-lg p-1">
+              <button
+                onClick={() => setSongsSubTab('list')}
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg ${
+                  songsSubTab === 'list'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                All Songs
+              </button>
+              {selectedSongDetails && (
+                <button
+                  onClick={() => setSongsSubTab('details')}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg ${
+                    songsSubTab === 'details'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Song Details
+                </button>
+              )}
             </div>
-            <ul className="grid gap-4">
-              {songs.map((song, index) => (
-                <li key={`${song.id}-${song.title}`} className={`flex items-center rounded-xl shadow-lg p-4 gap-4 hover:shadow-xl transition-all duration-300 border-2 ${
-                  currentSong?.id === song.id 
-                    ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-300 dark:border-blue-600 shadow-blue-200 dark:shadow-blue-900/20' 
-                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
-                }`}>
-                  <img 
-                    src={getArtworkUrl(song.artwork_url)} 
-                    alt={song.album_title + ' cover'} 
-                    className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
-                    onError={(e) => {
-                      e.currentTarget.src = '/music-icon.svg';
-                    }}
-                    style={{ display: getArtworkUrl(song.artwork_url) ? 'block' : 'none' }}
-                  />
-                  {!getArtworkUrl(song.artwork_url) && (
-                    <div className="w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      <img src="/music-icon.svg" alt="Music" className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold truncate text-gray-900 dark:text-white">{song.title}</div>
-                    <div className="text-gray-600 dark:text-gray-400 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
-                    <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
+
+            {/* Songs List Sub-tab */}
+            {songsSubTab === 'list' && (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Songs</h2>
+                    {pagination && (
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        ({pagination.totalItems} found)
+                      </span>
+                    )}
+                    {searchLoading && (
+                      <div className="flex items-center gap-1">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Searching...</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex flex-col gap-2 items-end">
-                    {currentSong?.id === song.id ? (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-end gap-0.5 h-4">
-                          <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-1"></div>
-                          <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-2"></div>
-                          <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-3"></div>
-                          <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-4"></div>
+                </div>
+                <ul className="grid gap-4">
+                  {songs.map((song, index) => (
+                    <li key={`${song.id}-${song.title}`} className={`flex items-center rounded-xl shadow-lg p-4 gap-4 hover:shadow-xl transition-all duration-300 border-2 ${
+                      currentSong?.id === song.id 
+                        ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-300 dark:border-blue-600 shadow-blue-200 dark:shadow-blue-900/20' 
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                    }`}>
+                      <img 
+                        src={getArtworkUrl(song.artwork_url)} 
+                        alt={song.album_title + ' cover'} 
+                        className="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
+                        onError={(e) => {
+                          e.currentTarget.src = '/music-icon.svg';
+                        }}
+                        style={{ display: getArtworkUrl(song.artwork_url) ? 'block' : 'none' }}
+                      />
+                      {!getArtworkUrl(song.artwork_url) && (
+                        <div className="w-16 h-16 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          <img src="/music-icon.svg" alt="Music" className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                         </div>
-                        <span className="text-xs text-blue-500 dark:text-blue-400 font-medium">Now Playing</span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold truncate text-gray-900 dark:text-white">{song.title}</div>
+                        <div className="text-gray-600 dark:text-gray-400 text-sm truncate">{song.artist_name} &bull; <span className="italic">{song.album_title || 'Unknown Album'}</span></div>
+                        <div className="text-gray-400 dark:text-gray-500 text-xs truncate">{song.duration ? `${Math.floor(song.duration / 60)}:${(song.duration % 60).toString().padStart(2, '0')}` : ''}</div>
+                      </div>
+                      <div className="flex flex-col gap-2 items-end">
+                        {currentSong?.id === song.id ? (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-end gap-0.5 h-4">
+                              <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-1"></div>
+                              <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-2"></div>
+                              <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-3"></div>
+                              <div className="w-0.5 bg-blue-500 dark:bg-blue-200 rounded-full animate-sound-bar-4"></div>
+                            </div>
+                            <span className="text-xs text-blue-500 dark:text-blue-400 font-medium">Now Playing</span>
+                          </div>
+                        ) : (
+                          <button 
+                            onClick={() => handlePlay(song)} 
+                            className="p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                            title="Play"
+                          >
+                            <Play size={20} className="ml-0.5" />
+                          </button>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <div className="relative group">
+                            <button 
+                              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"
+                              title="Add to playlist"
+                            >
+                              <Plus size={20} />
+                            </button>
+                            <div className="absolute left-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md p-2 hidden group-hover:block z-10 min-w-[120px]">
+                              {playlists.map((pl) => (
+                                <button
+                                  key={`${pl.id}-${song.id}`}
+                                  className="block w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                  onClick={() => handleAddToPlaylist(song, pl.id)}
+                                  disabled={isSongInPlaylist(song, pl)}
+                                >
+                                  {pl.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => handleViewSongDetails(song)}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"
+                            title="View details"
+                          >
+                            <ExternalLink size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {songs.length === 0 && (
+                  <div className="text-center text-gray-500 dark:text-gray-400 py-8">No songs found</div>
+                )}
+                
+                {/* Loading indicator for infinite scroll */}
+                {hasMore && (
+                  <div ref={loadingRef} className="text-center py-4">
+                    {loadingMore ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-gray-600 dark:text-gray-400">Loading more songs...</span>
                       </div>
                     ) : (
-                      <button 
-                        onClick={() => handlePlay(song)} 
-                        className="p-2 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-                        title="Play"
-                      >
-                        <Play size={20} className="ml-0.5" />
-                      </button>
+                      <div className="h-4" /> // Invisible element for intersection observer
                     )}
-                    <div className="relative group">
-                      <button 
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-700 dark:text-gray-300"
-                        title="Add to playlist"
-                      >
-                        <Plus size={20} />
-                      </button>
-                      <div className="absolute left-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md p-2 hidden group-hover:block z-10 min-w-[120px]">
-                        {playlists.map((pl) => (
-                          <button
-                            key={`${pl.id}-${song.id}`}
-                            className="block w-full text-left px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                            onClick={() => handleAddToPlaylist(song, pl.id)}
-                            disabled={isSongInPlaylist(song, pl)}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Song Details Sub-tab */}
+            {songsSubTab === 'details' && selectedSongDetails && (
+              <div className="mb-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <button
+                    onClick={handleBackToSongsList}
+                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  >
+                    <ArrowLeft size={20} />
+                    Back to Songs
+                  </button>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col md:flex-row gap-8">
+                    {/* Large Album Art */}
+                    <div className="flex-shrink-0">
+                      <div className="w-64 h-64 rounded-xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-600">
+                        {getArtworkUrl(selectedSongDetails.artwork_url) ? (
+                          <img 
+                            src={getArtworkUrl(selectedSongDetails.artwork_url)} 
+                            alt={selectedSongDetails.album_title + ' cover'} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = '/music-icon.svg';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <img src="/music-icon.svg" alt="Music" className="w-16 h-16 text-gray-400 dark:text-gray-500" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Song Information */}
+                    <div className="flex-1 min-w-0">
+                      <div className="mb-6">
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                          {selectedSongDetails.title}
+                        </h1>
+                        <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">
+                          by <span className="font-semibold">{selectedSongDetails.artist_name}</span>
+                        </p>
+                        <p className="text-lg text-gray-500 dark:text-gray-500 mb-4">
+                          from <span className="italic">{selectedSongDetails.album_title || 'Unknown Album'}</span>
+                        </p>
+                        {selectedSongDetails.genre && (
+                          <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-full text-sm font-medium border border-blue-200 dark:border-blue-800">
+                            {selectedSongDetails.genre}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                          <button 
+                            onClick={() => handlePlay(selectedSongDetails)} 
+                            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl"
                           >
-                            {pl.name}
+                            <Play size={20} className="ml-0.5" />
+                            Play Song
                           </button>
-                        ))}
+                          {user && (
+                            <div className="relative group">
+                              <button 
+                                className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-3 rounded-lg font-medium transition-colors"
+                                title="Add to playlist"
+                              >
+                                <Plus size={20} />
+                                Add to Playlist
+                              </button>
+                              <div className="absolute left-0 top-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-md p-2 hidden group-hover:block z-10 min-w-[150px]">
+                                {playlists.map((pl) => (
+                                  <button
+                                    key={`${pl.id}-${selectedSongDetails.id}`}
+                                    className="block w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed rounded"
+                                    onClick={() => handleAddToPlaylist(selectedSongDetails, pl.id)}
+                                    disabled={isSongInPlaylist(selectedSongDetails, pl)}
+                                  >
+                                    {pl.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Duration:</span>
+                            <span className="ml-2 text-gray-900 dark:text-white font-medium">
+                              {selectedSongDetails.duration ? `${Math.floor(selectedSongDetails.duration / 60)}:${(selectedSongDetails.duration % 60).toString().padStart(2, '0')}` : 'Unknown'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Artist ID:</span>
+                            <span className="ml-2 text-gray-900 dark:text-white font-medium">
+                              {selectedSongDetails.artist_id}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </li>
-              ))}
-            </ul>
-            {songs.length === 0 && (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">No songs found</div>
-            )}
-            
-            {/* Loading indicator for infinite scroll */}
-            {hasMore && (
-              <div ref={loadingRef} className="text-center py-4">
-                {loadingMore ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-gray-600 dark:text-gray-400">Loading more songs...</span>
-                  </div>
-                ) : (
-                  <div className="h-4" /> // Invisible element for intersection observer
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -903,6 +1072,13 @@ export default function Home() {
                                   <Play size={14} className="ml-0.5" />
                                 </button>
                                 <button
+                                  onClick={() => handleViewSongDetails(song)}
+                                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-gray-600 dark:text-gray-400"
+                                  title="View details"
+                                >
+                                  <ExternalLink size={14} />
+                                </button>
+                                <button
                                   onClick={() => handleRemoveFromPlaylist(song.id, pl.id)}
                                   className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors text-red-600 dark:text-red-400"
                                   title="Remove from playlist"
@@ -970,33 +1146,52 @@ export default function Home() {
                         Played {new Date(historyItem.played_at).toLocaleString()}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handlePlay({
-                        id: historyItem.song_id,
-                        title: historyItem.title,
-                        artist_id: historyItem.artist_id,
-                        artist_name: historyItem.artist_name,
-                        album_title: historyItem.album_title,
-                        artwork_url: historyItem.artwork_url,
-                        audio_url: historyItem.audio_url,
-                        duration: historyItem.duration,
-                        genre: historyItem.genre
-                      }, playHistory.map(h => ({
-                        id: h.song_id,
-                        title: h.title,
-                        artist_id: h.artist_id,
-                        artist_name: h.artist_name,
-                        album_title: h.album_title,
-                        artwork_url: h.artwork_url,
-                        audio_url: h.audio_url,
-                        duration: h.duration,
-                        genre: h.genre
-                      })), playHistory.findIndex(h => h.song_id === historyItem.song_id))}
-                      className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-full transition-colors text-blue-600 dark:text-blue-400"
-                      title="Play song"
-                    >
-                      <Play size={16} className="ml-0.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleViewSongDetails({
+                          id: historyItem.song_id,
+                          title: historyItem.title,
+                          artist_id: historyItem.artist_id,
+                          artist_name: historyItem.artist_name,
+                          album_title: historyItem.album_title,
+                          artwork_url: historyItem.artwork_url,
+                          audio_url: historyItem.audio_url,
+                          duration: historyItem.duration,
+                          genre: historyItem.genre
+                        })}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-600 dark:text-gray-400"
+                        title="View details"
+                      >
+                        <ExternalLink size={16} />
+                      </button>
+                      <button
+                        onClick={() => handlePlay({
+                          id: historyItem.song_id,
+                          title: historyItem.title,
+                          artist_id: historyItem.artist_id,
+                          artist_name: historyItem.artist_name,
+                          album_title: historyItem.album_title,
+                          artwork_url: historyItem.artwork_url,
+                          audio_url: historyItem.audio_url,
+                          duration: historyItem.duration,
+                          genre: historyItem.genre
+                        }, playHistory.map(h => ({
+                          id: h.song_id,
+                          title: h.title,
+                          artist_id: h.artist_id,
+                          artist_name: h.artist_name,
+                          album_title: h.album_title,
+                          artwork_url: h.artwork_url,
+                          audio_url: h.audio_url,
+                          duration: h.duration,
+                          genre: h.genre
+                        })), playHistory.findIndex(h => h.song_id === historyItem.song_id))}
+                        className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-full transition-colors text-blue-600 dark:text-blue-400"
+                        title="Play song"
+                      >
+                        <Play size={16} className="ml-0.5" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -1109,12 +1304,21 @@ export default function Home() {
                                 </p>
                               )}
                             </div>
-                            <button
-                              onClick={() => handlePlay(song)}
-                              className="flex-shrink-0 p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            >
-                              <Play className="w-4 h-4 ml-0.5" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleViewSongDetails(song)}
+                                className="flex-shrink-0 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                title="View details"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handlePlay(song)}
+                                className="flex-shrink-0 p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                              >
+                                <Play className="w-4 h-4 ml-0.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
