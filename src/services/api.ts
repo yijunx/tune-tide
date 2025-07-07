@@ -58,6 +58,21 @@ export interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
+export interface Comment {
+  id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user_id: number;
+  user_name: string;
+  user_picture_url?: string;
+}
+
+export interface CommentsResponse {
+  comments: Comment[];
+  pagination: PaginationInfo;
+}
+
 export interface PaginatedResponse<T> {
   songs: T[];
   pagination: PaginationInfo;
@@ -397,4 +412,33 @@ export const communitiesApi = {
     if (!response.ok) throw new Error('Failed to toggle post like');
     return response.json();
   },
+};
+
+// Comments API
+export const commentsApi = {
+  // Get comments for a song (public - no auth required)
+  getBySong: (songId: number, page = 1, limit = 20) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    return apiCall<CommentsResponse>(`/comments/song/${songId}?${params.toString()}`);
+  },
+
+  // Create a new comment (requires authentication)
+  create: (songId: number, content: string) => apiCall<Comment>(`/comments/song/${songId}`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  }),
+
+  // Update a comment (requires authentication and ownership)
+  update: (commentId: number, content: string) => apiCall<Comment>(`/comments/${commentId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ content }),
+  }),
+
+  // Delete a comment (requires authentication and ownership)
+  delete: (commentId: number) => apiCall<{ message: string }>(`/comments/${commentId}`, {
+    method: 'DELETE',
+  }),
 };

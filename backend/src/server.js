@@ -41,6 +41,7 @@ const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
 const recommendationsRouter = require('./routes/recommendations');
 const communitiesRouter = require('./routes/communities');
+const commentsRouter = require('./routes/comments');
 
 // Routes
 app.use('/api/artists', artistsRouter);
@@ -54,6 +55,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/recommendations', recommendationsRouter);
 app.use('/api/communities', communitiesRouter);
+app.use('/api/comments', commentsRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

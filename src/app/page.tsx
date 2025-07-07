@@ -5,6 +5,7 @@ import { songsApi, playlistsApi, searchApi, uploadApi, playHistoryApi, recommend
 import { authService, User as AuthUser } from "@/services/auth";
 import AudioPlayer from "../components/AudioPlayer";
 import Communities from "../components/Communities";
+import CommentSection from "../components/CommentSection";
 
 export default function Home() {
   const [search, setSearch] = useState("");
@@ -35,8 +36,7 @@ export default function Home() {
   const [topGenres, setTopGenres] = useState<Array<{ genre: string; preference_score: number; play_count: number }>>([]);
   const [topArtists, setTopArtists] = useState<Array<{ artist_name: string; preference_score: number; play_count: number }>>([]);
   
-  // Songs sub-tab state
-  const [songsSubTab, setSongsSubTab] = useState<'list' | 'details'>('list');
+  // Selected song details state
   const [selectedSongDetails, setSelectedSongDetails] = useState<Song | null>(null);
   
   // Pagination state
@@ -412,9 +412,11 @@ export default function Home() {
   const handleTabChange = (tab: 'songs' | 'playlists' | 'history' | 'recommendations' | 'communities') => {
     setActiveTab(tab);
     if (tab === 'songs') {
-      // Reset songs sub-tab to list view when switching to songs tab
-      setSongsSubTab('list');
-      setSelectedSongDetails(null);
+      // Only clear selected song details if manually clicking on songs tab (not from details view)
+      if (!selectedSongDetails) {
+        // This is a manual click on songs tab, so we're good
+      }
+      // If we have selected song details, keep them (user is coming from details view)
     } else if (tab === 'history' && user) {
       loadPlayHistory(); // Always refresh when switching to history tab
     } else if (tab === 'recommendations' && user) {
@@ -589,12 +591,14 @@ export default function Home() {
   // Handler for viewing song details
   const handleViewSongDetails = (song: Song) => {
     setSelectedSongDetails(song);
-    setSongsSubTab('details');
+    // Switch to songs tab if not already there
+    if (activeTab !== 'songs') {
+      setActiveTab('songs');
+    }
   };
 
   // Handler for going back to songs list
   const handleBackToSongsList = () => {
-    setSongsSubTab('list');
     setSelectedSongDetails(null);
   };
 
@@ -742,34 +746,8 @@ export default function Home() {
         {/* Songs Tab Content */}
         {activeTab === 'songs' && (
           <div className="mb-8">
-            {/* Songs Sub-tab Navigation */}
-            <div className="flex border-b-2 border-gray-200 dark:border-gray-700 mb-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 rounded-t-lg p-1">
-              <button
-                onClick={() => setSongsSubTab('list')}
-                className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg ${
-                  songsSubTab === 'list'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                All Songs
-              </button>
-              {selectedSongDetails && (
-                <button
-                  onClick={() => setSongsSubTab('details')}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg ${
-                    songsSubTab === 'details'
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  Song Details
-                </button>
-              )}
-            </div>
-
-            {/* Songs List Sub-tab */}
-            {songsSubTab === 'list' && (
+            {/* Songs List View */}
+            {!selectedSongDetails && (
               <>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -886,8 +864,8 @@ export default function Home() {
               </>
             )}
 
-            {/* Song Details Sub-tab */}
-            {songsSubTab === 'details' && selectedSongDetails && (
+            {/* Song Details View */}
+            {selectedSongDetails && (
               <div className="mb-8">
                 <div className="flex items-center gap-4 mb-6">
                   <button
@@ -991,6 +969,9 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Comments Section */}
+                  <CommentSection songId={selectedSongDetails.id} user={user} />
                 </div>
               </div>
             )}
