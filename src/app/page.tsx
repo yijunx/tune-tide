@@ -682,45 +682,56 @@ export default function Home() {
           </div>
         </div>
 
-        <input
-          className="w-full p-3 border-2 rounded-lg mb-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700"
-          placeholder="Search for songs, artists, or albums..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (naturalLanguageEnabled && e.key === 'Enter') {
-              handleSearch(search);
-            }
-          }}
-        />
+        {/* Search Input and AI Search Button */}
+        <div className={`flex gap-2 mb-4 transition-all duration-300 ${
+          naturalLanguageEnabled 
+            ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-3 rounded-lg border-2 border-purple-200 dark:border-purple-700' 
+            : ''
+        }`}>
+          {/* AI Search Toggle Button */}
+          <button
+            onClick={() => setNaturalLanguageEnabled(!naturalLanguageEnabled)}
+            className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              naturalLanguageEnabled
+                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg hover:from-purple-600 hover:to-pink-700'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border-2 border-gray-300 dark:border-gray-600'
+            }`}
+            title={naturalLanguageEnabled ? 'Natural language search enabled' : 'Enable natural language search'}
+          >
+            <span className="text-xs">🤖</span>
+            AI Search
+          </button>
+          
+          <input
+            className={`flex-1 p-3 border-2 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg ${
+              naturalLanguageEnabled
+                ? 'border-purple-300 dark:border-purple-600 focus:border-purple-500 dark:focus:border-purple-400 bg-gradient-to-r from-white to-purple-50 dark:from-gray-800 dark:to-purple-900/20'
+                : 'border-gray-300 dark:border-gray-600 focus:border-blue-500 dark:focus:border-blue-400 bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700'
+            }`}
+            placeholder={naturalLanguageEnabled ? "Try: 'I'm feeling sad' or 'need a party song'..." : "Search for songs, artists, or albums..."}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (naturalLanguageEnabled && e.key === 'Enter') {
+                handleSearch(search);
+              }
+            }}
+          />
+        </div>
         
-        {/* Natural Language Search Toggle */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setNaturalLanguageEnabled(!naturalLanguageEnabled)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                naturalLanguageEnabled
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-              title={naturalLanguageEnabled ? 'Natural language search enabled' : 'Enable natural language search'}
-            >
-              <span className="text-xs">🤖</span>
-              {naturalLanguageEnabled ? 'AI Search' : 'AI Search'}
-            </button>
-            {naturalLanguageEnabled && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Try: "I'm feeling sad" or "need a party song"
+        {/* AI Search Status */}
+        {naturalLanguageEnabled && (
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+              AI-powered search enabled • Press Enter to search
+            </span>
+            {searchType === 'natural-language' && (
+              <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                AI-powered results
               </span>
             )}
           </div>
-          {searchType === 'natural-language' && (
-            <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-              AI-powered results
-            </span>
-          )}
-        </div>
+        )}
         
         {/* Tab Navigation */}
         <div className="flex border-b-2 border-gray-200 dark:border-gray-700 mb-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 rounded-t-lg p-1">
