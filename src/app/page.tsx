@@ -42,6 +42,15 @@ export default function Home() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
+  // Set default tab based on user login status
+  useEffect(() => {
+    if (user) {
+      setActiveTab('recommendations');
+    } else {
+      setActiveTab('songs');
+    }
+  }, [user]);
+
   // Load initial data
   useEffect(() => {
     // Always sync user state from localStorage on mount
@@ -114,6 +123,12 @@ export default function Home() {
   const handleSearch = useCallback(async (query: string) => {
     try {
       setSearchLoading(true);
+      
+      // Auto-switch to songs tab when searching
+      if (query.trim()) {
+        setActiveTab('songs');
+      }
+      
       if (!query.trim()) {
         // If search is empty, load first page of all songs
         const songsResponse = await songsApi.getAll(1, 20);
@@ -369,6 +384,13 @@ export default function Home() {
     }
   };
 
+  // Auto-load recommendations when tab is active and user is logged in
+  useEffect(() => {
+    if (activeTab === 'recommendations' && user && !recommendationsLoading) {
+      loadRecommendations();
+    }
+  }, [activeTab, user]);
+
   const clearPlayHistory = async () => {
     if (!confirm('Are you sure you want to clear your play history? This action cannot be undone.')) {
       return;
@@ -588,16 +610,6 @@ export default function Home() {
         
         {/* Tab Navigation */}
         <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-          <button
-            onClick={() => handleTabChange('songs')}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'songs'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            Songs
-          </button>
           {user && (
             <>
               <button
@@ -633,6 +645,16 @@ export default function Home() {
               </button>
             </>
           )}
+          <button
+            onClick={() => handleTabChange('songs')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'songs'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            Songs
+          </button>
         </div>
         
         {/* Songs Tab Content */}
