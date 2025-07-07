@@ -1,10 +1,14 @@
 const express = require('express');
 const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const recommendationService = require('../services/recommendationService');
 const router = express.Router();
 
+// Apply authentication middleware to all routes
+router.use(authenticateToken);
+
 // Record a song play
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { song_id } = req.body;
     if (!song_id) {
@@ -23,6 +27,9 @@ router.post('/', authenticateToken, async (req, res) => {
       [req.user.id, song_id]
     );
 
+    // Update user preferences (this will also generate new recommendations)
+    await recommendationService.updateUserPreferences(req.user.id, song_id);
+
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error recording play history:', error);
@@ -31,7 +38,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Get user's play history with song details
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { limit = 50, offset = 0 } = req.query;
     
@@ -66,7 +73,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Get play history count for pagination
-router.get('/count', authenticateToken, async (req, res) => {
+router.get('/count', async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT COUNT(*) as total FROM play_history WHERE user_id = $1',
@@ -81,7 +88,7 @@ router.get('/count', authenticateToken, async (req, res) => {
 });
 
 // Clear user's play history
-router.delete('/', authenticateToken, async (req, res) => {
+router.delete('/', async (req, res) => {
   try {
     await pool.query('DELETE FROM play_history WHERE user_id = $1', [req.user.id]);
     res.json({ message: 'Play history cleared successfully' });

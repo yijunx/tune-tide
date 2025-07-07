@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Play, Plus, LogIn, User, LogOut, ChevronDown, ChevronRight, Trash2, History } from "lucide-react";
-import { songsApi, playlistsApi, searchApi, uploadApi, playHistoryApi, Song, Playlist, PlayHistory, PaginationInfo } from "@/services/api";
+import { songsApi, playlistsApi, searchApi, uploadApi, playHistoryApi, recommendationsApi, Song, Playlist, PlayHistory, PaginationInfo } from "@/services/api";
 import { authService, User as AuthUser } from "@/services/auth";
 import AudioPlayer from "../components/AudioPlayer";
 
@@ -19,7 +19,7 @@ export default function Home() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSong, setIsLoadingSong] = useState(false);
   const [expandedPlaylists, setExpandedPlaylists] = useState<Set<number>>(new Set());
-  const [activeTab, setActiveTab] = useState<'songs' | 'playlists' | 'history'>('songs');
+  const [activeTab, setActiveTab] = useState<'songs' | 'playlists' | 'history' | 'recommendations'>('songs');
   const [playHistory, setPlayHistory] = useState<PlayHistory[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyPagination, setHistoryPagination] = useState<{ total: number; hasMore: boolean }>({ total: 0, hasMore: true });
@@ -29,6 +29,10 @@ export default function Home() {
   const [shuffleMode, setShuffleMode] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'none' | 'one' | 'all'>('none');
   const [shuffledPlaylist, setShuffledPlaylist] = useState<number[]>([]);
+  const [recommendations, setRecommendations] = useState<Song[]>([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [topGenres, setTopGenres] = useState<Array<{ genre: string; preference_score: number; play_count: number }>>([]);
+  const [topArtists, setTopArtists] = useState<Array<{ artist_name: string; preference_score: number; play_count: number }>>([]);
   
   // Pagination state
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
@@ -335,10 +339,33 @@ export default function Home() {
     }
   };
 
-  const handleTabChange = (tab: 'songs' | 'playlists' | 'history') => {
+  const loadRecommendations = async () => {
+    if (!user) return;
+    
+    try {
+      setRecommendationsLoading(true);
+      const [recommendationsData, genresData, artistsData] = await Promise.all([
+        recommendationsApi.getRecommendations(20),
+        recommendationsApi.getTopGenres(5),
+        recommendationsApi.getTopArtists(5)
+      ]);
+      
+      setRecommendations(recommendationsData.recommendations);
+      setTopGenres(genresData);
+      setTopArtists(artistsData);
+    } catch (err) {
+      console.error('Error loading recommendations:', err);
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: 'songs' | 'playlists' | 'history' | 'recommendations') => {
     setActiveTab(tab);
     if (tab === 'history' && user) {
       loadPlayHistory(); // Always refresh when switching to history tab
+    } else if (tab === 'recommendations' && user) {
+      loadRecommendations(); // Always refresh when switching to recommendations tab
     }
   };
 
@@ -574,6 +601,16 @@ export default function Home() {
           {user && (
             <>
               <button
+                onClick={() => handleTabChange('recommendations')}
+                className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'recommendations'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Recommendations
+              </button>
+              <button
                 onClick={() => handleTabChange('playlists')}
                 className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === 'playlists'
@@ -616,16 +653,6 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              {songs.length > 0 && (
-                <button
-                  onClick={() => handlePlay(songs[0], songs, 0)}
-                  className="flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
-                  title="Play all songs"
-                >
-                  <Play size={14} />
-                  Play All
-                </button>
-              )}
             </div>
             <ul className="grid gap-4">
               {songs.map((song, index) => (
@@ -901,6 +928,118 @@ export default function Home() {
                   {historyLoading ? 'Loading...' : 'Load More'}
                 </button>
               </div>
+            )}
+          </div>
+        )}
+        
+        {/* Recommendations Tab Content */}
+        {activeTab === 'recommendations' && user && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Your Recommendations</h2>
+            
+            {recommendationsLoading ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                Loading recommendations...
+              </div>
+            ) : (
+              <>
+                {/* User Preferences Section */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">Your Music Taste</h3>
+                  
+                  {/* Top Genres */}
+                  {topGenres.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Favorite Genres</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {topGenres.map((genre, index) => (
+                          <span
+                            key={genre.genre}
+                            className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm"
+                          >
+                            {genre.genre} ({genre.play_count} plays)
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Top Artists */}
+                  {topArtists.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Favorite Artists</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {topArtists.map((artist, index) => (
+                          <span
+                            key={artist.artist_name}
+                            className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-sm"
+                          >
+                            {artist.artist_name} ({artist.play_count} plays)
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Recommended Songs */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">Recommended for You</h3>
+                    <button
+                      onClick={loadRecommendations}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                  
+                  {recommendations.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {recommendations.map((song) => (
+                        <div
+                          key={song.id}
+                          className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow p-4"
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <img
+                                src={song.artwork_url || '/default-album-art.png'}
+                                alt={song.title}
+                                className="w-12 h-12 rounded-md object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {song.title}
+                              </h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {song.artist_name}
+                              </p>
+                              {song.genre && (
+                                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                  {song.genre}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handlePlay(song)}
+                              className="flex-shrink-0 p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                            >
+                              <Play className="w-4 h-4 ml-0.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                      <p className="mb-2">No recommendations yet.</p>
+                      <p className="text-sm">Start listening to music to get personalized recommendations!</p>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}

@@ -70,6 +70,31 @@ CREATE TABLE IF NOT EXISTS playlist_songs (
     UNIQUE(playlist_id, song_id)
 );
 
+-- Create user_preferences table
+CREATE TABLE IF NOT EXISTS user_preferences (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    artist_id INTEGER REFERENCES artists(id) ON DELETE CASCADE,
+    genre VARCHAR(100),
+    preference_score DECIMAL(3,2) DEFAULT 0.0, -- 0.0 to 1.0
+    play_count INTEGER DEFAULT 0,
+    last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, artist_id, genre)
+);
+
+-- Create recommendation_cache table for storing computed recommendations
+CREATE TABLE IF NOT EXISTS recommendation_cache (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    song_id INTEGER REFERENCES songs(id) ON DELETE CASCADE,
+    score DECIMAL(5,4) DEFAULT 0.0,
+    reason VARCHAR(255), -- e.g., "Based on your love for Rock", "Similar to songs you've played"
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, song_id)
+);
+
 -- Create indexes for better search performance
 CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -83,6 +108,13 @@ CREATE INDEX IF NOT EXISTS idx_albums_artist_id ON albums(artist_id);
 CREATE INDEX IF NOT EXISTS idx_playlists_created_by ON playlists(created_by);
 CREATE INDEX IF NOT EXISTS idx_playlist_songs_playlist_id ON playlist_songs(playlist_id);
 CREATE INDEX IF NOT EXISTS idx_playlist_songs_song_id ON playlist_songs(song_id);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_preferences_genre ON user_preferences(genre);
+CREATE INDEX IF NOT EXISTS idx_user_preferences_artist_id ON user_preferences(artist_id);
+CREATE INDEX IF NOT EXISTS idx_recommendation_cache_user_id ON recommendation_cache(user_id);
+CREATE INDEX IF NOT EXISTS idx_recommendation_cache_score ON recommendation_cache(score DESC);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -98,4 +130,6 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECU
 CREATE TRIGGER update_artists_updated_at BEFORE UPDATE ON artists FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_albums_updated_at BEFORE UPDATE ON albums FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_songs_updated_at BEFORE UPDATE ON songs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_playlists_updated_at BEFORE UPDATE ON playlists FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
+CREATE TRIGGER update_playlists_updated_at BEFORE UPDATE ON playlists FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_recommendation_cache_updated_at BEFORE UPDATE ON recommendation_cache FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 

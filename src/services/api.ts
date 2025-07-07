@@ -224,3 +224,18 @@ export const searchApi = {
     albums: Album[];
   }>(`/search/${encodeURIComponent(query)}`),
 };
+
+// Recommendation API
+export const recommendationsApi = {
+  getRecommendations: (limit = 20) =>
+    apiCall<{ recommendations: Song[]; count: number }>(`/recommendations?limit=${limit}`),
+
+  getTopGenres: (limit = 5) =>
+    apiCall<Array<{ genre: string; preference_score: number; play_count: number }>>(`/recommendations/genres?limit=${limit}`),
+
+  getTopArtists: (limit = 5) =>
+    apiCall<Array<{ artist_name: string; preference_score: number; play_count: number }>>(`/recommendations/artists?limit=${limit}`),
+
+  regenerateRecommendations: () =>
+    apiCall<{ message: string }>(`/recommendations/regenerate`, { method: 'POST' }),
+};

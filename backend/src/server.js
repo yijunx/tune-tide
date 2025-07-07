@@ -39,6 +39,7 @@ const uploadRouter = require('./routes/upload');
 const audioRouter = require('./routes/audio');
 const authRouter = require('./routes/auth');
 const adminRouter = require('./routes/admin');
+const recommendationsRouter = require('./routes/recommendations');
 
 // Routes
 app.use('/api/artists', artistsRouter);
@@ -50,6 +51,7 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/audio', audioRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/recommendations', recommendationsRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
