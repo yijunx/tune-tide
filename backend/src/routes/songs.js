@@ -1,26 +1,49 @@
 const express = require('express');
 const pool = require('../config/database');
+const vectorSearchService = require('../services/vectorSearchService');
 const router = express.Router();
 
 // Get all songs with artist and album info
 router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 20, search, naturalLanguage } = req.query;
     const offset = (page - 1) * limit;
+    
+    // If natural language search is requested, use vector search
+    if (naturalLanguage && search) {
+      try {
+        const songs = await vectorSearchService.searchSongsByNaturalLanguage(search, parseInt(limit));
+        
+        res.json({
+          songs: songs,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: 1,
+            totalItems: songs.length,
+            itemsPerPage: parseInt(limit),
+            hasNextPage: false,
+            hasPrevPage: false
+          },
+          searchType: 'natural-language'
+        });
+        return;
+      } catch (error) {
+        console.error('Natural language search failed, falling back to text search:', error);
+        // Fall back to regular text search
+      }
+    }
     
     let query, params;
     
     if (search) {
-      // Search query with pagination
+      // Enhanced search query with description field
       query = `
         SELECT s.*, ar.name as artist_name, al.title as album_title, al.artwork_url
         FROM songs s 
         JOIN artists ar ON s.artist_id = ar.id 
         LEFT JOIN albums al ON s.album_id = al.id 
-        WHERE to_tsvector('english', s.title) @@ plainto_tsquery('english', $1)
-           OR to_tsvector('english', ar.name) @@ plainto_tsquery('english', $1)
-           OR to_tsvector('english', al.title) @@ plainto_tsquery('english', $1)
-        ORDER BY s.title
+        WHERE to_tsvector('english', s.title || ' ' || ar.name || ' ' || COALESCE(al.title, '') || ' ' || COALESCE(s.genre, '') || ' ' || COALESCE(s.description, '')) @@ plainto_tsquery('english', $1)
+        ORDER BY ts_rank(to_tsvector('english', s.title || ' ' || ar.name || ' ' || COALESCE(al.title, '') || ' ' || COALESCE(s.genre, '') || ' ' || COALESCE(s.description, '')), plainto_tsquery('english', $1)) DESC
         LIMIT $2 OFFSET $3
       `;
       params = [search, limit, offset];
@@ -47,9 +70,7 @@ router.get('/', async (req, res) => {
         FROM songs s 
         JOIN artists ar ON s.artist_id = ar.id 
         LEFT JOIN albums al ON s.album_id = al.id 
-        WHERE to_tsvector('english', s.title) @@ plainto_tsquery('english', $1)
-           OR to_tsvector('english', ar.name) @@ plainto_tsquery('english', $1)
-           OR to_tsvector('english', al.title) @@ plainto_tsquery('english', $1)
+        WHERE to_tsvector('english', s.title || ' ' || ar.name || ' ' || COALESCE(al.title, '') || ' ' || COALESCE(s.genre, '') || ' ' || COALESCE(s.description, '')) @@ plainto_tsquery('english', $1)
       `;
       countParams = [search];
     } else {
@@ -70,7 +91,8 @@ router.get('/', async (req, res) => {
         itemsPerPage: parseInt(limit),
         hasNextPage: parseInt(page) < totalPages,
         hasPrevPage: parseInt(page) > 1
-      }
+      },
+      searchType: 'text'
     });
   } catch (error) {
     console.error('Error fetching songs:', error);
@@ -101,7 +123,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Search songs
+// Search songs (enhanced with description)
 router.get('/search/:query', async (req, res) => {
   try {
     const { query } = req.params;
@@ -110,15 +132,33 @@ router.get('/search/:query', async (req, res) => {
       FROM songs s 
       JOIN artists ar ON s.artist_id = ar.id 
       LEFT JOIN albums al ON s.album_id = al.id 
-      WHERE to_tsvector('english', s.title) @@ plainto_tsquery('english', $1)
-         OR to_tsvector('english', ar.name) @@ plainto_tsquery('english', $1)
-         OR to_tsvector('english', al.title) @@ plainto_tsquery('english', $1)
-      ORDER BY s.title
+      WHERE to_tsvector('english', s.title || ' ' || ar.name || ' ' || COALESCE(al.title, '') || ' ' || COALESCE(s.genre, '') || ' ' || COALESCE(s.description, '')) @@ plainto_tsquery('english', $1)
+      ORDER BY ts_rank(to_tsvector('english', s.title || ' ' || ar.name || ' ' || COALESCE(al.title, '') || ' ' || COALESCE(s.genre, '') || ' ' || COALESCE(s.description, '')), plainto_tsquery('english', $1)) DESC
     `, [query]);
     res.json(result.rows);
   } catch (error) {
     console.error('Error searching songs:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Natural language search endpoint
+router.get('/natural-search/:query', async (req, res) => {
+  try {
+    const { query } = req.params;
+    const { limit = 10 } = req.query;
+    
+    const songs = await vectorSearchService.searchSongsByNaturalLanguage(query, parseInt(limit));
+    
+    res.json({
+      songs: songs,
+      query: query,
+      count: songs.length,
+      searchType: 'natural-language'
+    });
+  } catch (error) {
+    console.error('Error in natural language search:', error);
+    res.status(500).json({ error: 'Failed to perform natural language search' });
   }
 });
 
@@ -163,16 +203,35 @@ router.get('/album/:albumId', async (req, res) => {
 // Create new song
 router.post('/', async (req, res) => {
   try {
-    const { title, artist_id, album_id, duration, audio_url } = req.body;
+    const { title, artist_id, album_id, duration, audio_url, description } = req.body;
     
     if (!title || !artist_id) {
       return res.status(400).json({ error: 'Title and artist_id are required' });
     }
     
     const result = await pool.query(
-      'INSERT INTO songs (title, artist_id, album_id, duration, audio_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [title, artist_id, album_id, duration, audio_url]
+      'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [title, artist_id, album_id, duration, audio_url, description]
     );
+    
+    // Index the new song in Weaviate
+    const song = result.rows[0];
+    
+    // Get full song details for indexing
+    const songDetails = await pool.query(`
+      SELECT s.*, a.name as artist_name, al.title as album_title 
+      FROM songs s 
+      JOIN artists a ON s.artist_id = a.id 
+      LEFT JOIN albums al ON s.album_id = al.id 
+      WHERE s.id = $1
+    `, [song.id]);
+    
+    if (songDetails.rows.length > 0) {
+      // Index in background
+      vectorSearchService.indexSong(songDetails.rows[0]).catch(error => {
+        console.error('Background indexing error for new song:', error);
+      });
+    }
     
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -188,15 +247,34 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, artist_id, album_id, duration, audio_url } = req.body;
+    const { title, artist_id, album_id, duration, audio_url, description } = req.body;
     
     const result = await pool.query(
-      'UPDATE songs SET title = $1, artist_id = $2, album_id = $3, duration = $4, audio_url = $5 WHERE id = $6 RETURNING *',
-      [title, artist_id, album_id, duration, audio_url, id]
+      'UPDATE songs SET title = $1, artist_id = $2, album_id = $3, duration = $4, audio_url = $5, description = $6 WHERE id = $7 RETURNING *',
+      [title, artist_id, album_id, duration, audio_url, description, id]
     );
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Song not found' });
+    }
+    
+    // Re-index the updated song in Weaviate
+    const vectorSearchService = require('../services/vectorSearchService');
+    
+    // Get full song details for indexing
+    const songDetails = await pool.query(`
+      SELECT s.*, a.name as artist_name, al.title as album_title 
+      FROM songs s 
+      JOIN artists a ON s.artist_id = a.id 
+      LEFT JOIN albums al ON s.album_id = al.id 
+      WHERE s.id = $1
+    `, [id]);
+    
+    if (songDetails.rows.length > 0) {
+      // Index in background
+      vectorSearchService.indexSong(songDetails.rows[0]).catch(error => {
+        console.error('Background indexing error for updated song:', error);
+      });
     }
     
     res.json(result.rows[0]);

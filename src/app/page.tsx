@@ -44,6 +44,8 @@ export default function Home() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchType, setSearchType] = useState<'text' | 'natural-language'>('text');
+  const [naturalLanguageEnabled, setNaturalLanguageEnabled] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
@@ -117,12 +119,13 @@ export default function Home() {
 
   // Debounced search effect
   useEffect(() => {
+    if (naturalLanguageEnabled) return; // Don't auto-search when AI Search is on
     const timeoutId = setTimeout(() => {
       handleSearch(search);
     }, 300); // 300ms delay
 
     return () => clearTimeout(timeoutId);
-  }, [search]);
+  }, [search, naturalLanguageEnabled]);
 
   // Search functionality
   const handleSearch = useCallback(async (query: string) => {
@@ -140,19 +143,21 @@ export default function Home() {
         setSongs(songsResponse.songs);
         setPagination(songsResponse.pagination);
         setHasMore(songsResponse.pagination.hasNextPage);
+        setSearchType('text');
       } else {
-        // Search with pagination
-        const songsResponse = await songsApi.getAll(1, 20, query);
+        // Search with pagination - use natural language if enabled
+        const songsResponse = await songsApi.getAll(1, 20, query, naturalLanguageEnabled);
         setSongs(songsResponse.songs);
         setPagination(songsResponse.pagination);
         setHasMore(songsResponse.pagination.hasNextPage);
+        setSearchType(songsResponse.searchType || 'text');
       }
     } catch (err) {
       console.error('Error searching:', err);
     } finally {
       setSearchLoading(false);
     }
-  }, []);
+  }, [naturalLanguageEnabled]);
 
   const handlePlay = async (song: Song, songList?: Song[], startIndex?: number) => {
     const songIndex = songs.findIndex(s => s.id === song.id);
@@ -682,7 +687,40 @@ export default function Home() {
           placeholder="Search for songs, artists, or albums..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (naturalLanguageEnabled && e.key === 'Enter') {
+              handleSearch(search);
+            }
+          }}
         />
+        
+        {/* Natural Language Search Toggle */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setNaturalLanguageEnabled(!naturalLanguageEnabled)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                naturalLanguageEnabled
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+              title={naturalLanguageEnabled ? 'Natural language search enabled' : 'Enable natural language search'}
+            >
+              <span className="text-xs">🤖</span>
+              {naturalLanguageEnabled ? 'AI Search' : 'AI Search'}
+            </button>
+            {naturalLanguageEnabled && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Try: "I'm feeling sad" or "need a party song"
+              </span>
+            )}
+          </div>
+          {searchType === 'natural-language' && (
+            <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+              AI-powered results
+            </span>
+          )}
+        </div>
         
         {/* Tab Navigation */}
         <div className="flex border-b-2 border-gray-200 dark:border-gray-700 mb-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 rounded-t-lg p-1">

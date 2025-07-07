@@ -104,7 +104,7 @@ router.post('/albums', upload.single('artwork'), async (req, res) => {
 // Create new song
 router.post('/songs', upload.single('audio'), async (req, res) => {
   try {
-    const { title, artist_id, album_id, duration, genre } = req.body;
+    const { title, artist_id, album_id, duration, genre, description } = req.body;
     
     if (!title || !artist_id) {
       return res.status(400).json({ error: 'Title and artist are required' });
@@ -119,23 +119,54 @@ router.post('/songs', upload.single('audio'), async (req, res) => {
       audio_url = await uploadAudioFile(req.file.buffer, fileName, req.file.mimetype);
     }
     
-    // Try to insert with genre first, fallback to without genre if column doesn't exist
+    // Try to insert with genre and description first, fallback to without if columns don't exist
     let result;
     try {
       result = await pool.query(
-        'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, genre, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [title, artist_id, album_id, duration, audio_url, genre, req.user.id]
+        'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, genre, description, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+        [title, artist_id, album_id, duration, audio_url, genre, description, req.user.id]
       );
     } catch (error) {
       if (error.code === '42703') { // Column doesn't exist
-        console.log('Genre column not found, inserting without genre');
-        result = await pool.query(
-          'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-          [title, artist_id, album_id, duration, audio_url, req.user.id]
-        );
+        console.log('Genre or description column not found, inserting without them');
+        try {
+          result = await pool.query(
+            'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, genre, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [title, artist_id, album_id, duration, audio_url, genre, req.user.id]
+          );
+        } catch (error2) {
+          if (error2.code === '42703') { // Still column doesn't exist
+            console.log('Genre column also not found, inserting without genre');
+            result = await pool.query(
+              'INSERT INTO songs (title, artist_id, album_id, duration, audio_url, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+              [title, artist_id, album_id, duration, audio_url, req.user.id]
+            );
+          } else {
+            throw error2;
+          }
+        }
       } else {
         throw error;
       }
+    }
+    
+    // Index the new song in Weaviate
+    const vectorSearchService = require('../services/vectorSearchService');
+    
+    // Get full song details for indexing
+    const songDetails = await pool.query(`
+      SELECT s.*, a.name as artist_name, al.title as album_title 
+      FROM songs s 
+      JOIN artists a ON s.artist_id = a.id 
+      LEFT JOIN albums al ON s.album_id = al.id 
+      WHERE s.id = $1
+    `, [result.rows[0].id]);
+    
+    if (songDetails.rows.length > 0) {
+      // Index in background
+      vectorSearchService.indexSong(songDetails.rows[0]).catch(error => {
+        console.error('Background indexing error for new song:', error);
+      });
     }
     
     res.status(201).json(result.rows[0]);

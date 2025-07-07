@@ -11,6 +11,7 @@ export interface Song {
   duration?: number;
   audio_url: string;
   genre?: string;
+  description?: string;
 }
 
 export interface Artist {
@@ -76,6 +77,7 @@ export interface CommentsResponse {
 export interface PaginatedResponse<T> {
   songs: T[];
   pagination: PaginationInfo;
+  searchType?: 'text' | 'natural-language';
 }
 
 // Generic API call function
@@ -124,7 +126,7 @@ function getAuthHeaders(): Record<string, string> {
 
 // Songs API
 export const songsApi = {
-  getAll: (page = 1, limit = 20, search?: string) => {
+  getAll: (page = 1, limit = 20, search?: string, naturalLanguage?: boolean) => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
@@ -132,10 +134,14 @@ export const songsApi = {
     if (search) {
       params.append('search', search);
     }
+    if (naturalLanguage) {
+      params.append('naturalLanguage', 'true');
+    }
     return apiCall<PaginatedResponse<Song>>(`/songs?${params.toString()}`);
   },
   getById: (id: number) => apiCall<Song>(`/songs/${id}`),
   search: (query: string) => apiCall<Song[]>(`/songs/search/${encodeURIComponent(query)}`),
+  naturalSearch: (query: string, limit = 10) => apiCall<{ songs: Song[]; query: string; count: number; searchType: string }>(`/songs/natural-search/${encodeURIComponent(query)}?limit=${limit}`),
   getByArtist: (artistId: number) => apiCall<Song[]>(`/songs/artist/${artistId}`),
   getByAlbum: (albumId: number) => apiCall<Song[]>(`/songs/album/${albumId}`),
   create: (data: Partial<Song>) => apiCall<Song>('/songs', {
@@ -440,5 +446,17 @@ export const commentsApi = {
   // Delete a comment (requires authentication and ownership)
   delete: (commentId: number) => apiCall<{ message: string }>(`/comments/${commentId}`, {
     method: 'DELETE',
+  }),
+};
+
+// Vector Search API
+export const vectorSearchApi = {
+  search: (query: string, limit = 10) => apiCall<{ songs: Song[]; query: string; count: number }>(`/vector-search/search?query=${encodeURIComponent(query)}&limit=${limit}`),
+  health: () => apiCall<{ status: string; weaviate: string; vllm: string; timestamp: string }>('/vector-search/health'),
+  indexAll: () => apiCall<{ message: string; status: string }>('/vector-search/index-all', {
+    method: 'POST',
+  }),
+  indexSong: (songId: number) => apiCall<{ message: string; songId: number }>(`/vector-search/index-song/${songId}`, {
+    method: 'POST',
   }),
 };

@@ -38,7 +38,8 @@ export default function AdminPage() {
     artist_id: '', 
     album_id: '', 
     duration: '',
-    genre: ''
+    genre: '',
+    description: ''
   });
   
   // File states
@@ -153,6 +154,7 @@ export default function AdminPage() {
       formData.append('album_id', songForm.album_id);
       formData.append('duration', songForm.duration);
       formData.append('genre', songForm.genre);
+      formData.append('description', songForm.description);
       
       if (audioFile) {
         formData.append('audio', audioFile);
@@ -167,7 +169,7 @@ export default function AdminPage() {
       });
 
       if (response.ok) {
-        setSongForm({ title: '', artist_id: '', album_id: '', duration: '', genre: '' });
+        setSongForm({ title: '', artist_id: '', album_id: '', duration: '', genre: '', description: '' });
         setAudioFile(null);
         await loadData();
         alert('Song created successfully!');
@@ -414,6 +416,17 @@ export default function AdminPage() {
                   value={songForm.genre}
                   onChange={(e) => setSongForm({ ...songForm, genre: e.target.value })}
                   className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={songForm.description}
+                  onChange={(e) => setSongForm({ ...songForm, description: e.target.value })}
+                  className="w-full p-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
+                  rows={3}
                 />
               </div>
               <div className="mb-4">
