@@ -3,6 +3,7 @@ const pool = require('../config/database');
 class RecommendationService {
   // Update user preferences when a song is played
   async updateUserPreferences(userId, songId) {
+    console.log(`Updating preferences for user ${userId}, song ${songId}`);
     const client = await pool.connect();
     try {
       // Get song details
@@ -13,39 +14,50 @@ class RecommendationService {
         WHERE s.id = $1
       `, [songId]);
 
-      if (songResult.rows.length === 0) return;
+      if (songResult.rows.length === 0) {
+        console.log(`Song ${songId} not found`);
+        return;
+      }
 
       const song = songResult.rows[0];
+      console.log(`Found song: ${song.title} by ${song.artist_name}, genre: ${song.genre}`);
 
       // Update artist preference
+      console.log(`Updating artist preference for artist ${song.artist_id}`);
       await client.query(`
         INSERT INTO user_preferences (user_id, artist_id, preference_score, play_count, last_played)
         VALUES ($1, $2, 0.1, 1, CURRENT_TIMESTAMP)
-        ON CONFLICT (user_id, artist_id, genre)
+        ON CONFLICT (user_id, artist_id) WHERE genre IS NULL
         DO UPDATE SET 
           preference_score = LEAST(user_preferences.preference_score + 0.1, 1.0),
           play_count = user_preferences.play_count + 1,
-          last_played = CURRENT_TIMESTAMP
-        WHERE user_preferences.user_id = $1 AND user_preferences.artist_id = $2 AND user_preferences.genre IS NULL
+          last_played = CURRENT_TIMESTAMP;
       `, [userId, song.artist_id]);
+      console.log(`Artist preference updated`);
 
       // Update genre preference if genre exists
       if (song.genre) {
+        console.log(`Updating genre preference for genre ${song.genre}`);
         await client.query(`
           INSERT INTO user_preferences (user_id, genre, preference_score, play_count, last_played)
           VALUES ($1, $2, 0.1, 1, CURRENT_TIMESTAMP)
-          ON CONFLICT (user_id, artist_id, genre)
+          ON CONFLICT (user_id, genre) WHERE artist_id IS NULL
           DO UPDATE SET 
             preference_score = LEAST(user_preferences.preference_score + 0.1, 1.0),
             play_count = user_preferences.play_count + 1,
-            last_played = CURRENT_TIMESTAMP
-          WHERE user_preferences.user_id = $1 AND user_preferences.genre = $2 AND user_preferences.artist_id IS NULL
+            last_played = CURRENT_TIMESTAMP;
         `, [userId, song.genre]);
+        console.log(`Genre preference updated`);
       }
 
       // Clear old recommendations and generate new ones
+      console.log(`Generating recommendations`);
       await this.generateRecommendations(userId);
+      console.log(`Recommendations generated`);
 
+    } catch (error) {
+      console.error('Error in updateUserPreferences:', error);
+      throw error;
     } finally {
       client.release();
     }
@@ -53,10 +65,12 @@ class RecommendationService {
 
   // Generate recommendations for a user
   async generateRecommendations(userId) {
+    console.log(`Generating recommendations for user ${userId}`);
     const client = await pool.connect();
     try {
       // Clear old recommendations
       await client.query('DELETE FROM recommendation_cache WHERE user_id = $1', [userId]);
+      console.log(`Cleared old recommendations`);
 
       // Get user's top preferences
       const preferencesResult = await client.query(`
@@ -67,8 +81,11 @@ class RecommendationService {
         LIMIT 10
       `, [userId]);
 
+      console.log(`Found ${preferencesResult.rows.length} preferences`);
+
       if (preferencesResult.rows.length === 0) {
         // No preferences yet, recommend popular songs
+        console.log(`No preferences found, recommending popular songs`);
         await this.recommendPopularSongs(userId);
         return;
       }
@@ -77,8 +94,11 @@ class RecommendationService {
 
       // Generate recommendations based on preferences
       for (const pref of preferencesResult.rows) {
+        console.log(`Processing preference:`, pref);
+        
         if (pref.artist_id) {
           // Recommend songs from favorite artists
+          console.log(`Finding songs for artist ${pref.artist_id}`);
           const artistSongs = await client.query(`
             SELECT s.*, ar.name as artist_name, al.title as album_title, al.artwork_url
             FROM songs s 
@@ -91,6 +111,8 @@ class RecommendationService {
             LIMIT 5
           `, [pref.artist_id, userId]);
 
+          console.log(`Found ${artistSongs.rows.length} unplayed songs for artist ${pref.artist_id}`);
+
           artistSongs.rows.forEach(song => {
             recommendations.push({
               song_id: song.id,
@@ -102,6 +124,7 @@ class RecommendationService {
 
         if (pref.genre) {
           // Recommend songs from favorite genres
+          console.log(`Finding songs for genre ${pref.genre}`);
           const genreSongs = await client.query(`
             SELECT s.*, ar.name as artist_name, al.title as album_title, al.artwork_url
             FROM songs s 
@@ -114,6 +137,8 @@ class RecommendationService {
             LIMIT 5
           `, [pref.genre, userId]);
 
+          console.log(`Found ${genreSongs.rows.length} unplayed songs for genre ${pref.genre}`);
+
           genreSongs.rows.forEach(song => {
             recommendations.push({
               song_id: song.id,
@@ -124,6 +149,8 @@ class RecommendationService {
         }
       }
 
+      console.log(`Generated ${recommendations.length} recommendations before deduplication`);
+
       // Remove duplicates and sort by score
       const uniqueRecommendations = recommendations.reduce((acc, rec) => {
         if (!acc.find(r => r.song_id === rec.song_id)) {
@@ -131,6 +158,15 @@ class RecommendationService {
         }
         return acc;
       }, []).sort((a, b) => b.score - a.score);
+
+      console.log(`After deduplication: ${uniqueRecommendations.length} recommendations`);
+
+      // Fallback: If no recommendations, recommend popular songs
+      if (uniqueRecommendations.length === 0) {
+        console.log('No unique recommendations found, recommending popular songs as fallback');
+        await this.recommendPopularSongs(userId);
+        return;
+      }
 
       // Store top 20 recommendations
       const topRecommendations = uniqueRecommendations.slice(0, 20);
@@ -142,6 +178,11 @@ class RecommendationService {
         `, [userId, rec.song_id, rec.score, rec.reason]);
       }
 
+      console.log(`Stored ${topRecommendations.length} recommendations in cache`);
+
+    } catch (error) {
+      console.error('Error in generateRecommendations:', error);
+      throw error;
     } finally {
       client.release();
     }
