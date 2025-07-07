@@ -683,23 +683,19 @@ export default function Home() {
         </div>
 
         {/* Search Input and AI Search Button */}
-        <div className={`flex gap-2 mb-4 transition-all duration-300 ${
-          naturalLanguageEnabled 
-            ? 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-3 rounded-lg border-2 border-purple-200 dark:border-purple-700' 
-            : ''
-        }`}>
+        <div className="flex gap-2 mb-4">
           {/* AI Search Toggle Button */}
           <button
             onClick={() => setNaturalLanguageEnabled(!naturalLanguageEnabled)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 whitespace-nowrap border-2 ${
               naturalLanguageEnabled
-                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg hover:from-purple-600 hover:to-pink-700'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border-2 border-gray-300 dark:border-gray-600'
+                ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg hover:from-purple-600 hover:to-pink-700 border-purple-400'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600'
             }`}
-            title={naturalLanguageEnabled ? 'Natural language search enabled' : 'Enable natural language search'}
+            title={naturalLanguageEnabled ? 'AI Search: ON - Click to disable' : 'AI Search: OFF - Click to enable'}
           >
             <span className="text-xs">🤖</span>
-            AI Search
+            {naturalLanguageEnabled ? 'AI Search ON' : 'AI Search OFF'}
           </button>
           
           <input
