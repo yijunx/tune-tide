@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TuneTide",
   description: "TuneTide - Discover, share, and enjoy indie music. Join communities, create playlists, and connect with artists and fans.",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

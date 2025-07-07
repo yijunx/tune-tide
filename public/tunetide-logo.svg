@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" fill="none">
+  <defs>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1f2937;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#374151;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradientDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f9fafb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e5e7eb;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="1" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+  
+  <!-- TuneTide handwritten text -->
+  <g filter="url(#shadow)">
+    <!-- T -->
+    <path d="M20 30 Q25 25 30 30 Q35 35 40 30 Q45 25 50 30 Q55 35 60 30 Q65 25 70 30 Q75 35 80 30 Q85 25 90 30 Q95 35 100 30" 
+          stroke="url(#textGradient)" stroke-width="3" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M20 30 Q25 25 30 30 Q35 35 40 30 Q45 25 50 30 Q55 35 60 30 Q65 25 70 30 Q75 35 80 30 Q85 25 90 30 Q95 35 100 30" 
+          stroke="url(#textGradientDark)" stroke-width="3" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+    
+    <!-- u -->
+    <path d="M105 30 Q110 25 115 30 Q120 35 125 30 Q130 25 135 30 Q140 35 145 30 Q150 25 155 30 Q160 35 165 30 Q170 25 175 30 Q180 35 185 30" 
+          stroke="url(#textGradient)" stroke-width="3" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M105 30 Q110 25 115 30 Q120 35 125 30 Q130 25 135 30 Q140 35 145 30 Q150 25 155 30 Q160 35 165 30 Q170 25 175 30 Q180 35 185 30" 
+          stroke="url(#textGradientDark)" stroke-width="3" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+    
+    <!-- n -->
+    <path d="M190 30 Q195 25 200 30 Q205 35 210 30 Q215 25 220 30 Q225 35 230 30 Q235 25 240 30 Q245 35 250 30 Q255 25 260 30" 
+          stroke="url(#textGradient)" stroke-width="3" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M190 30 Q195 25 200 30 Q205 35 210 30 Q215 25 220 30 Q225 35 230 30 Q235 25 240 30 Q245 35 250 30 Q255 25 260 30" 
+          stroke="url(#textGradientDark)" stroke-width="3" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+    
+    <!-- e -->
+    <path d="M265 30 Q270 25 275 30 Q280 35 285 30 Q290 25 295 30" 
+          stroke="url(#textGradient)" stroke-width="3" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M265 30 Q270 25 275 30 Q280 35 285 30 Q290 25 295 30" 
+          stroke="url(#textGradientDark)" stroke-width="3" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+    
+    <!-- T -->
+    <path d="M20 60 Q25 55 30 60 Q35 65 40 60 Q45 55 50 60 Q55 65 60 60 Q65 55 70 60 Q75 65 80 60 Q85 55 90 60 Q95 65 100 60" 
+          stroke="url(#textGradient)" stroke-width="3" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M20 60 Q25 55 30 60 Q35 65 40 60 Q45 55 50 60 Q55 65 60 60 Q65 55 70 60 Q75 65 80 60 Q85 55 90 60 Q95 65 100 60" 
+          stroke="url(#textGradientDark)" stroke-width="3" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+    
+    <!-- i -->
+    <path d="M105 60 Q110 55 115 60 Q120 65 125 60" 
+          stroke="url(#textGradient)" stroke-width="3" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M105 60 Q110 55 115 60 Q120 65 125 60" 
+          stroke="url(#textGradientDark)" stroke-width="3" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+    
+    <!-- d -->
+    <path d="M130 60 Q135 55 140 60 Q145 65 150 60 Q155 55 160 60 Q165 65 170 60 Q175 55 180 60 Q185 65 190 60" 
+          stroke="url(#textGradient)" stroke-width="3" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M130 60 Q135 55 140 60 Q145 65 150 60 Q155 55 160 60 Q165 65 170 60 Q175 55 180 60 Q185 65 190 60" 
+          stroke="url(#textGradientDark)" stroke-width="3" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+    
+    <!-- e -->
+    <path d="M195 60 Q200 55 205 60 Q210 65 215 60 Q220 55 225 60" 
+          stroke="url(#textGradient)" stroke-width="3" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M195 60 Q200 55 205 60 Q210 65 215 60 Q220 55 225 60" 
+          stroke="url(#textGradientDark)" stroke-width="3" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+  </g>
+  
+  <!-- Music note accent -->
+  <g transform="translate(320, 15)">
+    <path d="M0 0 Q5 -5 10 0 Q15 5 20 0" 
+          stroke="url(#textGradient)" stroke-width="2" fill="none" stroke-linecap="round" class="dark:hidden"/>
+    <path d="M0 0 Q5 -5 10 0 Q15 5 20 0" 
+          stroke="url(#textGradientDark)" stroke-width="2" fill="none" stroke-linecap="round" class="hidden dark:block"/>
+    
+    <circle cx="5" cy="5" r="2.5" fill="url(#textGradient)" class="dark:hidden"/>
+    <circle cx="5" cy="5" r="2.5" fill="url(#textGradientDark)" class="hidden dark:block"/>
+    
+    <circle cx="15" cy="3" r="2.5" fill="url(#textGradient)" class="dark:hidden"/>
+    <circle cx="15" cy="3" r="2.5" fill="url(#textGradientDark)" class="hidden dark:block"/>
+  </g>
+  
+  <!-- Wave accent -->
+  <path d="M350 70 Q355 65 360 70 Q365 75 370 70 Q375 65 380 70 Q385 75 390 70" 
+        stroke="url(#textGradient)" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6" class="dark:hidden"/>
+  <path d="M350 70 Q355 65 360 70 Q365 75 370 70 Q375 65 380 70 Q385 75 390 70" 
+        stroke="url(#textGradientDark)" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6" class="hidden dark:block"/>
+</svg> 

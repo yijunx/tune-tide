@@ -562,7 +562,16 @@ export default function Home() {
       <main className="max-w-2xl mx-auto p-4 pb-24">
         {/* Header with login */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">TuneTide</h1>
+          <div className="flex flex-col">
+            <div className="flex flex-col">
+              <h1 className="text-6xl font-recoleta tracking-tight animate-gradient-shift bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                TuneTide
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
+                Discover indie music beyond the mainstream
+              </p>
+            </div>
+          </div>
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-2">
@@ -577,7 +586,7 @@ export default function Home() {
                 {user.is_admin && (
                   <button
                     onClick={handleAdminAccess}
-                    className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600"
+                    className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-lg text-sm hover:from-purple-600 hover:to-pink-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     Admin
                   </button>
@@ -593,7 +602,7 @@ export default function Home() {
             ) : (
               <button
                 onClick={handleLogin}
-                className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 <LogIn size={16} />
                 Login with Google
@@ -603,42 +612,42 @@ export default function Home() {
         </div>
 
         <input
-          className="w-full p-2 border rounded mb-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400"
+          className="w-full p-3 border-2 rounded-lg mb-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-700"
           placeholder="Search for songs, artists, or albums..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+        <div className="flex border-b-2 border-gray-200 dark:border-gray-700 mb-6 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 rounded-t-lg p-1">
           {user && (
             <>
               <button
                 onClick={() => handleTabChange('recommendations')}
-                className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg ${
                   activeTab === 'recommendations'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 Recommendations
               </button>
               <button
                 onClick={() => handleTabChange('playlists')}
-                className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg ${
                   activeTab === 'playlists'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 Playlists
               </button>
               <button
                 onClick={() => handleTabChange('history')}
-                className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-1 ${
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg flex items-center gap-1 ${
                   activeTab === 'history'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 <History size={14} />
@@ -646,10 +655,10 @@ export default function Home() {
               </button>
               <button
                 onClick={() => handleTabChange('communities')}
-                className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg ${
                   activeTab === 'communities'
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 Communities
@@ -658,10 +667,10 @@ export default function Home() {
           )}
           <button
             onClick={() => handleTabChange('songs')}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+            className={`px-4 py-3 font-medium text-sm border-b-2 transition-all duration-300 rounded-t-lg ${
               activeTab === 'songs'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
             }`}
           >
             Songs
@@ -689,10 +698,10 @@ export default function Home() {
             </div>
             <ul className="grid gap-4">
               {songs.map((song, index) => (
-                <li key={`${song.id}-${song.title}`} className={`flex items-center rounded-xl shadow p-3 gap-4 hover:shadow-lg transition-all border ${
+                <li key={`${song.id}-${song.title}`} className={`flex items-center rounded-xl shadow-lg p-4 gap-4 hover:shadow-xl transition-all duration-300 border-2 ${
                   currentSong?.id === song.id 
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700' 
-                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border-blue-300 dark:border-blue-600 shadow-blue-200 dark:shadow-blue-900/20' 
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
                 }`}>
                   <img 
                     src={getArtworkUrl(song.artwork_url)} 
