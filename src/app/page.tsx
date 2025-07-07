@@ -168,7 +168,11 @@ export default function Home() {
       setCurrentPlaylistIndex(-1);
       setCurrentSong(song);
       setCurrentSongIndex(songIndex);
-      setForcePlay(true);
+      
+      // Delay the force play to ensure audio is loaded
+      setTimeout(() => {
+        setForcePlay(true);
+      }, 150);
     }
     
     // Record play history if user is logged in
@@ -186,7 +190,11 @@ export default function Home() {
       const nextSong = songs[currentSongIndex + 1];
       setCurrentSong(nextSong);
       setCurrentSongIndex(currentSongIndex + 1);
-      setForcePlay(true);
+      
+      // Delay the force play to ensure audio is loaded
+      setTimeout(() => {
+        setForcePlay(true);
+      }, 150);
     }
   };
 
@@ -195,6 +203,11 @@ export default function Home() {
       const prevSong = songs[currentSongIndex - 1];
       setCurrentSong(prevSong);
       setCurrentSongIndex(currentSongIndex - 1);
+      
+      // Delay the force play to ensure audio is loaded
+      setTimeout(() => {
+        setForcePlay(true);
+      }, 150);
     }
   };
 
@@ -409,16 +422,21 @@ export default function Home() {
 
   // Playlist playback functions
   const startPlaylist = (songList: Song[], startIndex: number = 0) => {
+    // First, set the playlist and current song without forcing play
     setPlaylist(songList);
     setCurrentPlaylistIndex(startIndex);
     setCurrentSong(songList[startIndex]);
     setCurrentSongIndex(songs.findIndex(s => s.id === songList[startIndex].id));
-    setForcePlay(true);
     
     // Reset shuffle if needed
     if (shuffleMode) {
       generateShuffledPlaylist(songList, startIndex);
     }
+    
+    // Delay the force play to ensure audio is loaded
+    setTimeout(() => {
+      setForcePlay(true);
+    }, 150);
   };
 
   const generateShuffledPlaylist = (songList: Song[], excludeIndex: number) => {
@@ -488,7 +506,11 @@ export default function Home() {
       setCurrentPlaylistIndex(nextIndex);
       setCurrentSong(playlist[nextIndex]);
       setCurrentSongIndex(songs.findIndex(s => s.id === playlist[nextIndex].id));
-      setForcePlay(true);
+      
+      // Delay the force play to ensure audio is loaded
+      setTimeout(() => {
+        setForcePlay(true);
+      }, 150);
     }
   };
 
@@ -498,7 +520,11 @@ export default function Home() {
       setCurrentPlaylistIndex(prevIndex);
       setCurrentSong(playlist[prevIndex]);
       setCurrentSongIndex(songs.findIndex(s => s.id === playlist[prevIndex].id));
-      setForcePlay(true);
+      
+      // Delay the force play to ensure audio is loaded
+      setTimeout(() => {
+        setForcePlay(true);
+      }, 150);
     }
   };
 

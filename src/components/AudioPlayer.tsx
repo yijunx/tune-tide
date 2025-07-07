@@ -27,7 +27,9 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPlayRequestPending, setIsPlayRequestPending] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const playRequestRef = useRef<Promise<void> | null>(null);
 
   // Reset player when song changes
   useEffect(() => {
@@ -35,6 +37,12 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
       // Only reset if the song ID has actually changed
       const currentSongId = audioRef.current.dataset.songId;
       if (currentSongId !== currentSong.id?.toString()) {
+        // Cancel any pending play request
+        if (playRequestRef.current) {
+          playRequestRef.current = null;
+        }
+        setIsPlayRequestPending(false);
+        
         setIsLoading(true);
         setIsPlaying(false);
         setCurrentTime(0);
@@ -44,60 +52,75 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
         audioRef.current.load();
         audioRef.current.dataset.songId = currentSong.id?.toString() || '';
         
-        // Auto-play the new song
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
+        // Auto-play the new song with proper error handling
+        const playAudio = async () => {
+          try {
+            if (audioRef.current && !isPlayRequestPending) {
+              setIsPlayRequestPending(true);
+              playRequestRef.current = audioRef.current.play();
+              await playRequestRef.current;
               setIsPlaying(true);
               setIsLoading(false);
               onSongLoaded?.();
-            })
-            .catch((error) => {
-              console.error('Error playing audio:', error);
-              setIsLoading(false);
-              setIsPlaying(false);
-            });
-        }
-      } else if (forcePlay) {
+            }
+          } catch (error) {
+            console.error('Error playing audio:', error);
+            setIsLoading(false);
+            setIsPlaying(false);
+          } finally {
+            setIsPlayRequestPending(false);
+            playRequestRef.current = null;
+          }
+        };
+        
+        // Small delay to ensure audio is loaded
+        setTimeout(playAudio, 100);
+      } else if (forcePlay && !isPlayRequestPending) {
         // Force play the same song if forcePlay is true
-        setIsLoading(true);
-        
-        // Ensure audio is loaded and ready
-        if (audioRef.current.readyState === 0) {
-          audioRef.current.load();
-        }
-        
-        // Reset current time and pause first to ensure clean state
-        audioRef.current.currentTime = 0;
-        audioRef.current.pause();
-        
-        // Small delay to ensure pause is processed, then play
-        setTimeout(() => {
-          if (audioRef.current) {
-            const playPromise = audioRef.current.play();
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
+        const forcePlayAudio = async () => {
+          try {
+            setIsLoading(true);
+            setIsPlayRequestPending(true);
+            
+            // Ensure audio is loaded and ready
+            if (audioRef.current && audioRef.current.readyState === 0) {
+              audioRef.current.load();
+            }
+            
+            // Reset current time and pause first to ensure clean state
+            if (audioRef.current) {
+              audioRef.current.currentTime = 0;
+              audioRef.current.pause();
+              
+              // Small delay to ensure pause is processed, then play
+              setTimeout(async () => {
+                if (audioRef.current && !isPlayRequestPending) {
+                  playRequestRef.current = audioRef.current.play();
+                  await playRequestRef.current;
                   setIsPlaying(true);
                   setIsLoading(false);
                   onSongLoaded?.();
-                })
-                .catch((error) => {
-                  console.error('Error playing audio:', error);
-                  setIsLoading(false);
-                  setIsPlaying(false);
-                });
+                }
+              }, 100);
             }
+          } catch (error) {
+            console.error('Error force playing audio:', error);
+            setIsLoading(false);
+            setIsPlaying(false);
+          } finally {
+            setIsPlayRequestPending(false);
+            playRequestRef.current = null;
           }
-        }, 100);
+        };
+        
+        forcePlayAudio();
       }
     }
-  }, [currentSong?.id, onSongLoaded, forcePlay]);
+  }, [currentSong?.id, onSongLoaded, forcePlay, isPlayRequestPending]);
 
   // Handle play/pause
   const togglePlay = async () => {
-    if (!audioRef.current || !currentSong) return;
+    if (!audioRef.current || !currentSong || isPlayRequestPending) return;
 
     try {
       if (isPlaying) {
@@ -105,23 +128,24 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
         setIsPlaying(false);
       } else {
         setIsLoading(true);
+        setIsPlayRequestPending(true);
         
         // Ensure audio is loaded
         if (audioRef.current.readyState === 0) {
           audioRef.current.load();
         }
         
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-          setIsPlaying(true);
-        }
+        playRequestRef.current = audioRef.current.play();
+        await playRequestRef.current;
+        setIsPlaying(true);
         setIsLoading(false);
       }
     } catch (error) {
       console.error('Error toggling play:', error);
       setIsLoading(false);
       setIsPlaying(false);
+    } finally {
+      setIsPlayRequestPending(false);
     }
   };
 
@@ -149,6 +173,17 @@ export default function AudioPlayer({ currentSong, defaultArtworkUrl, onSongEnd,
       };
     }
   }, [onSongEnd]);
+
+  // Cleanup effect to handle component unmounting
+  useEffect(() => {
+    return () => {
+      // Cancel any pending play request when component unmounts
+      if (playRequestRef.current) {
+        playRequestRef.current = null;
+      }
+      setIsPlayRequestPending(false);
+    };
+  }, []);
 
   // Handle time update
   const handleTimeUpdate = () => {
